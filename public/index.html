@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AnyFileConvert - Telegram Mini App</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-box">
+        <span class="logo-icon">⚡</span>
+        <div>
+          <h1 class="app-title">AnyFileConvert</h1>
+          <p class="app-subtitle">Universal File & Media Converter</p>
+        </div>
+      </div>
+      <div class="user-credits-badge" id="creditsBadge">
+        <span class="bolt">⚡</span> <span id="creditCount">10</span> Credits
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="converter">🛠️ Converter</button>
+      <button class="tab-btn" data-tab="urldownload">🔗 URL to MP3</button>
+      <button class="tab-btn" data-tab="account">👤 Profile</button>
+    </nav>
+
+    <!-- TAB 1: FILE CONVERTER -->
+    <section class="tab-content active" id="tab-converter">
+      <!-- Tool Selection Grid -->
+      <div class="tool-selector">
+        <label class="label">1. Choose Action</label>
+        <select id="taskSelect" class="custom-select">
+          <option value="img2pdf">🖼️ Image to PDF</option>
+          <option value="v2mp3">🎥 Video to MP3 Audio</option>
+          <option value="v2gif">🎬 Video to Animated GIF</option>
+          <option value="bgrem">✂️ Remove Image Background (remove.bg)</option>
+          <option value="pdf2txt">📝 PDF to Text (.txt)</option>
+          <option value="docx2pdf">📘 Word DOCX to PDF</option>
+          <option value="imgconv">🖼️ Convert Image Format (PNG/JPG)</option>
+        </select>
+      </div>
+
+      <!-- Drag & Drop File Area -->
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">📁</div>
+        <p class="drop-title">Tap to select or drop file here</p>
+        <p class="drop-subtitle" id="selectedFileName">Supports PDF, DOCX, Images, MP4, MKV, etc.</p>
+        <input type="file" id="fileInput" class="file-input">
+      </div>
+
+      <!-- Convert Action Button -->
+      <button class="primary-btn" id="convertBtn">
+        ✨ Convert File Now
+      </button>
+
+      <!-- Progress Box -->
+      <div class="progress-box hidden" id="progressBox">
+        <div class="spinner"></div>
+        <p class="progress-text" id="progressText">Processing file...</p>
+      </div>
+
+      <!-- Result Card -->
+      <div class="result-card hidden" id="resultCard">
+        <div class="result-header">
+          <span class="success-badge">✅ Success!</span>
+          <h3 id="resultFileName">converted_document.pdf</h3>
+        </div>
+        <a id="downloadBtn" href="#" download class="secondary-btn">
+          ⬇️ Download Converted File
+        </a>
+      </div>
+    </section>
+
+    <!-- TAB 2: URL DOWNLOADER -->
+    <section class="tab-content" id="tab-urldownload">
+      <div class="card">
+        <h3>🔗 Download Video URL to MP3</h3>
+        <p class="card-desc">Paste YouTube or Web Video link to extract audio</p>
+        
+        <input type="url" id="urlInput" class="custom-input" placeholder="https://youtube.com/watch?v=...">
+        
+        <button class="primary-btn" id="urlConvertBtn">
+          🎵 Convert Link to MP3
+        </button>
+
+        <div class="progress-box hidden" id="urlProgressBox">
+          <div class="spinner"></div>
+          <p class="progress-text">Downloading & converting video link...</p>
+        </div>
+
+        <div class="result-card hidden" id="urlResultCard">
+          <span class="success-badge">✅ Audio Ready!</span>
+          <a id="urlDownloadBtn" href="#" download class="secondary-btn">
+            ⬇️ Download MP3 Audio
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ACCOUNT & CREDITS -->
+    <section class="tab-content" id="tab-account">
+      <div class="card profile-card">
+        <div class="avatar-box">👤</div>
+        <h3 id="profileUsername">@User</h3>
+        <p class="plan-badge">PLAN: <span id="profilePlan">FREE</span></p>
+        
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-num" id="statCredits">10</span>
+            <span class="stat-label">Daily Credits</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-num" id="statRef">0</span>
+            <span class="stat-label">Friends Referred</span>
+          </div>
+        </div>
+
+        <button class="action-btn" id="claimDailyBtn">🎁 Claim Daily Bonus (+3)</button>
+        <button class="action-btn secondary" id="shareRefBtn">👥 Share Referral Link (+5)</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "users": {
+    "460004390": {
+      "id": 460004390,
+      "username": "",
+      "plan": "admin",
+      "credits": 999999,
+      "lastReset": "2026-08-10",
+      "createdAt": "2026-08-10T16:38:20.790Z"
+    },
+    "5360171578": {
+      "id": 5360171578,
+      "username": "oceanshore1",
+      "plan": "free",
+      "credits": 0,
+      "lastReset": "2026-08-10",
+      "createdAt": "2026-08-10T16:58:07.977Z"
+    },
+    "test_user_999": {
+      "id": "test_user_999",
+      "username": "",
+      "plan": "free",
+      "credits": 13,
+      "lastReset": "2026-08-10",
+      "lastDailyClaim": "2026-08-10",
+      "referralsCount": 0,
+      "createdAt": "2026-08-10T17:41:59.787Z"
+    },
+    "8681661934": {
+      "id": 8681661934,
+      "username": "Examtyping",
+      "plan": "free",
+      "credits": 3,
+      "lastReset": "2026-08-10",
+      "lastDailyClaim": "",
+      "referralsCount": 0,
+      "createdAt": "2026-08-10T17:51:35.089Z"
+    }
+  },
+  "transactions": []
+}

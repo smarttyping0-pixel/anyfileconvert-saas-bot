@@ -1,0 +1,8 @@
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated cookie file for YouTube session bypass.
+
+.youtube.com	TRUE	/	FALSE	1786400000	VISITOR_INFO1_LIVE	C7_qF4Wv9Zk
+.youtube.com	TRUE	/	FALSE	1786400000	YSC	w_1x7vW8a9o
+.youtube.com	TRUE	/	TRUE	1786400000	PREF	f4=4000000&f6=40000000&tz=Asia.Calcutta
+.youtube.com	TRUE	/	TRUE	1786400000	GPS	1

@@ -1,0 +1,28 @@
+{
+  "name": "telegram-all-in-one-converter-saas-bot",
+  "version": "5.0.0",
+  "description": "Telegram Micro-SaaS Bot & Telegram Mini App (TMA) for All-in-One Format Conversions",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "node --watch src/bot.js"
+  },
+  "dependencies": {
+    "@distube/ytdl-core": "^4.15.9",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "form-data": "^4.0.0",
+    "grammy": "^1.26.0",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pdf2json": "^3.1.5",
+    "play-dl": "^1.9.7",
+    "sharp": "^0.33.5"
+  }
+}
