@@ -145,6 +145,9 @@ app.get('/downloads/:fileName', (req, res) => {
   }
 });
 
+// Health Check & Anti-Sleep Ping Route
+app.get('/ping', (req, res) => res.status(200).send('OK'));
+
 // Global error handling middleware to ensure JSON response always
 app.use((err, req, res, next) => {
   console.error("Global Express Error:", err.message);
@@ -158,6 +161,12 @@ app.use((err, req, res, next) => {
 function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🌐 Mini App Web Server is running on port ${PORT} (0.0.0.0)`);
+    
+    // Built-in 10-minute self-ping keepalive to prevent Render free tier from sleeping
+    setInterval(() => {
+      const serverUrl = process.env.WEB_APP_URL || 'https://anyfileconvert-saas-bot.onrender.com';
+      axios.get(`${serverUrl}/ping`).catch(() => {});
+    }, 10 * 60 * 1000);
   });
 }
 
