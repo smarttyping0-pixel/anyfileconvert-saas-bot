@@ -589,15 +589,32 @@ async function downloadUrlToMp3(videoUrl) {
 }
 
 /**
- * Replace transparent background of image with solid white color (Supports PNG, WEBP, GIF, SVG)
+ * Replace transparent background of image with solid white color (Supports PNG, WEBP, JPEG & Photo Subjects)
  */
 async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
   const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.png`);
-  
+  let targetPath = imagePath;
+  let tempRemovedPath = null;
+
   try {
     const metadata = await sharp(imagePath).metadata();
-    const w = metadata.width || 800;
-    const h = metadata.height || 600;
+    const hasAlpha = metadata.hasAlpha;
+
+    // If image is a standard photo (JPEG/no alpha), isolate subject first via AI background removal
+    if (!hasAlpha || metadata.format === 'jpeg' || metadata.format === 'jpg') {
+      try {
+        tempRemovedPath = await removeImageBackground(imagePath, process.env.REMOVE_BG_API_KEY || '');
+        if (tempRemovedPath && fs.existsSync(tempRemovedPath)) {
+          targetPath = tempRemovedPath;
+        }
+      } catch (e) {
+        console.error("BG Removal pre-pass note:", e.message);
+      }
+    }
+
+    const targetMeta = await sharp(targetPath).metadata();
+    const w = targetMeta.width || 800;
+    const h = targetMeta.height || 600;
 
     const bgCanvas = await sharp({
       create: {
@@ -609,18 +626,20 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
     }).png().toBuffer();
 
     await sharp(bgCanvas)
-      .composite([{ input: imagePath, blend: 'over' }])
+      .composite([{ input: targetPath, blend: 'over' }])
       .png()
       .toFile(outputFilePath);
 
     return outputFilePath;
   } catch (err) {
-    console.error("fillTransparentBackground compositing note, falling back:", err.message);
+    console.error("fillTransparentBackground error, falling back:", err.message);
     await sharp(imagePath)
       .flatten({ background: fillColor })
       .png()
       .toFile(outputFilePath);
     return outputFilePath;
+  } finally {
+    if (tempRemovedPath) cleanupFile(tempRemovedPath);
   }
 }
 
