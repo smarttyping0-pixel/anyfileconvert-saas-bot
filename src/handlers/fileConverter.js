@@ -61,6 +61,17 @@ async function downloadTelegramFile(telegramFilePath, localDestinationPath) {
   });
 }
 
+/**
+ * Menu Task Prompts & Handlers
+ */
+async function selectTask(ctx, taskType, promptText) {
+  session.setUserTask(ctx.from.id, taskType);
+  await ctx.reply(
+    `✅ *Selected Task:* ${promptText}\n\n📥 *Please send or forward your file now to convert it!*`,
+    { parse_mode: 'Markdown' }
+  );
+}
+
 async function promptResizeOptions(ctx) {
   session.setUserTask(ctx.from.id, 'imgresize', { width: 800, height: 600 });
   const keyboard = new InlineKeyboard()
