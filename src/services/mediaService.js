@@ -198,10 +198,44 @@ async function extractTextFromImage(imagePath) {
 }
 
 /**
- * Extract Text from PDF file using pdf2json + fallback pdf-parse + Tesseract OCR
+ * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json
  */
 async function convertPdfToText(pdfPath) {
-  // Method A: Try pdf2json
+  // Method A: Primary Mozilla PDF.js Engine (Handles all complex, un-XRef'd & custom font PDFs)
+  try {
+    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+    const dataBuffer = fs.readFileSync(pdfPath);
+    const data = new Uint8Array(dataBuffer);
+    const loadingTask = pdfjsLib.getDocument({ data, disableFontFace: true });
+    const pdfDocument = await loadingTask.promise;
+    
+    let fullText = '';
+    for (let i = 1; i <= pdfDocument.numPages; i++) {
+      const page = await pdfDocument.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      if (pageText.trim()) {
+        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+      }
+    }
+    if (fullText.trim()) return fullText.trim();
+  } catch (err) {
+    console.error("Mozilla PDF.js error, attempting pdf-parse fallback:", err.message);
+  }
+
+  // Method B: Fallback pdf-parse
+  try {
+    const pdfParse = require('pdf-parse');
+    const dataBuffer = fs.readFileSync(pdfPath);
+    const parsed = await pdfParse(dataBuffer);
+    if (parsed.text && parsed.text.trim()) {
+      return parsed.text;
+    }
+  } catch (err) {
+    console.error("pdf-parse fallback error:", err.message);
+  }
+
+  // Method C: Fallback pdf2json
   try {
     const text = await new Promise((resolve, reject) => {
       const PDFParser = require('pdf2json');
@@ -221,35 +255,10 @@ async function convertPdfToText(pdfPath) {
 
     if (text && text.trim()) return text;
   } catch (err) {
-    console.error("pdf2json error, attempting pdf-parse fallback:", err.message);
+    console.error("pdf2json error:", err.message);
   }
 
-  // Method B: Fallback to pdf-parse for corrupted XRef tables & custom PDF headers
-  try {
-    const pdfParse = require('pdf-parse');
-    const dataBuffer = fs.readFileSync(pdfPath);
-    const parsed = await pdfParse(dataBuffer);
-    if (parsed.text && parsed.text.trim()) {
-      return parsed.text;
-    }
-  } catch (err) {
-    console.error("pdf-parse fallback error:", err.message);
-  }
-
-  // Method C: Tesseract OCR fallback for scanned PDF pages
-  try {
-    const { createWorker } = require('tesseract.js');
-    const worker = await createWorker('eng');
-    const ret = await worker.recognize(pdfPath);
-    await worker.terminate();
-    if (ret.data && ret.data.text && ret.data.text.trim()) {
-      return ret.data.text;
-    }
-  } catch (err) {
-    console.error("PDF OCR error:", err.message);
-  }
-
-  throw new Error("Unable to extract text from this PDF. It may be password-protected or encrypted. Please send an unprotected PDF file!");
+  throw new Error("Unable to extract text from this PDF file. It may be password-protected or encrypted. Please upload an unprotected PDF file!");
 }
 
 /**
