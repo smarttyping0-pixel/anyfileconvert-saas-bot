@@ -80,10 +80,10 @@ async function promptResizeOptions(ctx) {
     .text("1920 x 1080 px (HD)", "resize_1920x1080")
     .text("50% Scale", "resize_pct_50").row()
     .text("75% Scale", "resize_pct_75")
-    .text("25% Scale", "resize_pct_25");
+    .text("✍️ Type Custom Size", "resize_custom");
 
   await ctx.reply(
-    "📐 *IMAGE RESIZER CONFIGURATION*\n\nChoose your target dimensions / scale percentage below, then send your photo!\n\n*(Default: 800x600 pixels)*",
+    "📐 *IMAGE RESIZER CONFIGURATION*\n\nChoose your target dimensions / scale percentage below, or tap **✍️ Type Custom Size**!\n\n*(Default: 800x600 pixels)*",
     { parse_mode: 'Markdown', reply_markup: keyboard }
   );
 }
@@ -109,10 +109,10 @@ async function handleIncomingFile(ctx) {
   const userId = ctx.from.id;
   let activeTask = session.getUserTask(userId);
 
-  // Only override task if user has not explicitly selected a task from the menu
-  if (!['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv'].includes(activeTask)) {
+  // Only fallback if user has not explicitly selected a task from the menu
+  if (!activeTask || !['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv', 'img2pdf'].includes(activeTask)) {
     if (ctx.message.photo) {
-      activeTask = 'img2pdf';
+      activeTask = 'imgconv'; // Default photo upload to PNG/JPG format conversion instead of forcing PDF
     } else if (ctx.message.video || ctx.message.video_note) {
       activeTask = 'v2mp3';
     } else if (ctx.message.audio || ctx.message.voice) {
@@ -122,7 +122,7 @@ async function handleIncomingFile(ctx) {
       if (docName.endsWith('.pdf')) activeTask = 'pdf2txt';
       else if (docName.endsWith('.docx')) activeTask = 'docx2pdf';
       else if (docName.endsWith('.txt')) activeTask = 'docx2pdf';
-      else activeTask = 'img2pdf';
+      else activeTask = 'imgconv';
     }
   }
 
@@ -244,9 +244,14 @@ async function handleIncomingFile(ctx) {
     else if (activeTask === 'fillbg') {
       outputPath = await mediaService.fillTransparentBackground(localInputPath, '#ffffff');
       db.deductCredits(userId, 1);
-      await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: "⚪ *Replaced Transparent Background with Solid White!*",
+      await ctx.replyWithPhoto(new InputFile(outputPath), {
+        caption: "⚪ *Replaced Transparent Background with Solid White (PNG Image)!*",
         parse_mode: 'Markdown'
+      }).catch(async () => {
+        await ctx.replyWithDocument(new InputFile(outputPath), {
+          caption: "⚪ *Replaced Transparent Background with Solid White (PNG Image)!*",
+          parse_mode: 'Markdown'
+        });
       });
     }
     // 10. Task: Resize Image (Pixels & Percentage)

@@ -112,7 +112,10 @@ bot.callbackQuery('task_imgcompress', async (ctx) => {
 bot.callbackQuery(/^resize_(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
   const val = ctx.match[1];
-  if (val.startsWith('pct_')) {
+  if (val === 'custom') {
+    session.setUserTask(ctx.from.id, 'imgresize', {});
+    await ctx.reply(`✍️ *Please reply with your custom dimensions:*\n\n• For Pixels: type \`1200x800\`\n• For Scale: type \`50%\``, { parse_mode: 'Markdown' });
+  } else if (val.startsWith('pct_')) {
     const pct = parseInt(val.replace('pct_', ''), 10);
     session.setUserTask(ctx.from.id, 'imgresize', { percentage: pct });
     await ctx.reply(`✅ *Resize Mode Set:* ${pct}% Scale!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
