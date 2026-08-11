@@ -522,13 +522,13 @@ async function downloadUrlToMp3(videoUrl) {
             .audioBitrate('192k')
             .on('end', () => resolve(normalizedOutput))
             .on('error', (err) => {
-              reject(new Error("YouTube stream protected. Please send video file directly!"));
+              reject(new Error("YouTube blocks automated cloud servers. Please send Instagram Reels, MP4 video links, or upload your video file directly to convert to MP3!"));
             })
             .save(normalizedOutput);
         });
       }
     } catch (err) {
-      throw new Error("YouTube stream protected. Please send video file directly!");
+      throw new Error("YouTube anti-bot block: YouTube blocks cloud server IPs. Please send Instagram Reels, MP4 links, or upload your video file directly!");
     }
   }
 
