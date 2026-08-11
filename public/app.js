@@ -71,7 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
         body: formData
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (e) {
+        throw new Error(rawText ? rawText.substring(0, 100) : "Empty response from server");
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Conversion failed');
@@ -124,7 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ url, userId: telegramUser.id })
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (e) {
+        throw new Error(rawText ? rawText.substring(0, 100) : "Empty response from server");
+      }
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'URL conversion failed');

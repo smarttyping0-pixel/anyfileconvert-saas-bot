@@ -9,15 +9,19 @@ const db = require('./services/database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS and JSON parsing
+// Enable CORS and JSON parsing with 50mb limits
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve Mini App Static Frontend
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Configure Multer for uploaded files
-const upload = multer({ dest: mediaService.TEMP_DIR });
+// Configure Multer for uploaded files (50MB limit)
+const upload = multer({
+  dest: mediaService.TEMP_DIR,
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 
 // -------------------------------------------------------------
 // REST API ENDPOINTS
@@ -121,6 +125,15 @@ app.get('/downloads/:fileName', (req, res) => {
   } else {
     res.status(404).send('File not found or expired');
   }
+});
+
+// Global error handling middleware to ensure JSON response always
+app.use((err, req, res, next) => {
+  console.error("Global Express Error:", err.message);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Server error occurred during request processing'
+  });
 });
 
 // Start Express Server
