@@ -88,7 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('statCredits').textContent = count - 1;
       }
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      if (err.name === 'TypeError' || err.message.includes('fetch')) {
+        alert('🌐 Connection Error: Unable to reach server. Please ensure server is running or deployed!');
+      } else {
+        alert(`Error: ${err.message}`);
+      }
     } finally {
       progressBox.classList.add('hidden');
       convertBtn.disabled = false;
@@ -129,7 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
       urlDownloadBtn.href = data.downloadUrl;
       urlResultCard.classList.remove('hidden');
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      if (err.name === 'TypeError' || err.message.includes('fetch')) {
+        alert('🌐 Connection Error: Unable to reach server. Please ensure server is running or deployed!');
+      } else {
+        alert(`Error: ${err.message}`);
+      }
     } finally {
       urlProgressBox.classList.add('hidden');
       urlConvertBtn.disabled = false;
