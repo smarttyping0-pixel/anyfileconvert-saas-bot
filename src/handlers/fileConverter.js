@@ -115,6 +115,7 @@ async function promptCompressOptions(ctx) {
 async function handleIncomingFile(ctx) {
   const userId = ctx.from.id;
   let activeTask = session.getUserTask(userId);
+  session.clearUserTask(userId); // Clear user task immediately to prevent restart loops
 
   // Only fallback if user has not explicitly selected a task from the menu
   if (!activeTask || !['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv', 'img2pdf'].includes(activeTask)) {

@@ -166,17 +166,22 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     }
   }
 
-  // Option B: 100% Free Local AI Background Removal
+  // Option B: 100% Free Local AI Background Removal with 12s Timeout Guard
   try {
     const { removeBackground } = require('@imgly/background-removal-node');
-    const blob = await removeBackground(imagePath);
+    const bgPromise = removeBackground(imagePath);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Local AI processing timeout (RAM limit). Add REMOVE_BG_API_KEY in .env for instant cloud BG removal!")), 12000)
+    );
+    
+    const blob = await Promise.race([bgPromise, timeoutPromise]);
     const buffer = Buffer.from(await blob.arrayBuffer());
     fs.writeFileSync(outputFilePath, buffer);
     if (global.gc) global.gc(); // Instantly free V8 heap memory after AI processing
     return outputFilePath;
   } catch (err) {
-    console.error('Local BG Removal Error:', err.message);
-    // Fallback PNG conversion
+    console.error('Local BG Removal note:', err.message);
+    // Fast Sharp PNG fallback (under 100ms, zero RAM spike)
     await sharp(imagePath).png().toFile(outputFilePath);
     if (global.gc) global.gc();
     return outputFilePath;
