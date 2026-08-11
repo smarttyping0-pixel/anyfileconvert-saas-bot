@@ -24,6 +24,7 @@
     "pdf-parse": "^1.1.4",
     "pdf2json": "^3.1.5",
     "play-dl": "^1.9.7",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "tesseract.js": "^7.0.0"
   }
 }

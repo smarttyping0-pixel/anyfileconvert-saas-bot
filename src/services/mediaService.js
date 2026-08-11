@@ -182,7 +182,23 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
 // -------------------------------------------------------------------
 
 /**
- * Extract Text from PDF file using pdf2json + fallback pdf-parse
+ * Extract Text from Image (PNG/JPG/WEBP) using Tesseract.js OCR
+ */
+async function extractTextFromImage(imagePath) {
+  try {
+    const { createWorker } = require('tesseract.js');
+    const worker = await createWorker('eng');
+    const ret = await worker.recognize(imagePath);
+    await worker.terminate();
+    return ret.data.text || "No text detected in image.";
+  } catch (err) {
+    console.error("Tesseract OCR Error:", err.message);
+    return "Failed to perform OCR on image.";
+  }
+}
+
+/**
+ * Extract Text from PDF file using pdf2json + fallback pdf-parse + Tesseract OCR
  */
 async function convertPdfToText(pdfPath) {
   // Method A: Try pdf2json
@@ -220,7 +236,20 @@ async function convertPdfToText(pdfPath) {
     console.error("pdf-parse fallback error:", err.message);
   }
 
-  throw new Error("Unable to extract text from this PDF. It may be password-protected, encrypted, or a scanned image PDF (without a digital text layer). Please send an unprotected text PDF file!");
+  // Method C: Tesseract OCR fallback for scanned PDF pages
+  try {
+    const { createWorker } = require('tesseract.js');
+    const worker = await createWorker('eng');
+    const ret = await worker.recognize(pdfPath);
+    await worker.terminate();
+    if (ret.data && ret.data.text && ret.data.text.trim()) {
+      return ret.data.text;
+    }
+  } catch (err) {
+    console.error("PDF OCR error:", err.message);
+  }
+
+  throw new Error("Unable to extract text from this PDF. It may be password-protected or encrypted. Please send an unprotected PDF file!");
 }
 
 /**
@@ -499,6 +528,7 @@ module.exports = {
   convertImageToPdf,
   removeImageBackground,
   fillTransparentBackground,
+  extractTextFromImage,
   convertPdfToText,
   convertDocxToText,
   convertTextToPdf,
