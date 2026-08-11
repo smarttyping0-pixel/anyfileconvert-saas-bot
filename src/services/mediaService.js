@@ -7,6 +7,7 @@ const pdfParse = require('pdf-parse');
 const sharp = require('sharp');
 const axios = require('axios');
 const FormData = require('form-data');
+const mammoth = require('mammoth');
 const config = require('../config');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
