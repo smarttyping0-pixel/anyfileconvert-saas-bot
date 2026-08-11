@@ -187,6 +187,30 @@ bot.on('message:text', async (ctx) => {
     return handleUrlConversion(ctx, text);
   }
 
+  const activeTask = session.getUserTask(ctx.from.id);
+  if (activeTask === 'docx2pdf') {
+    const { hasEnoughCredits } = require('./handlers/fileConverter');
+    if (!hasEnoughCredits(ctx, 1)) return;
+    const statusMsg = await ctx.reply("⏳ *Converting your text message into a PDF document...*", { parse_mode: 'Markdown' });
+    try {
+      const mediaService = require('./services/mediaService');
+      const { InputFile } = require('grammy');
+      const outputPath = await mediaService.convertTextToPdf(text);
+      db.deductCredits(ctx.from.id, 1);
+      await ctx.replyWithDocument(new InputFile(outputPath), {
+        caption: "📄 *Here is your converted PDF Document!*",
+        parse_mode: 'Markdown'
+      });
+      session.clearUserTask(ctx.from.id);
+      await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
+      if (outputPath) mediaService.cleanupFile(outputPath);
+    } catch (e) {
+      console.error("Text message to PDF error:", e);
+      ctx.reply(`❌ Failed to convert text to PDF: ${e.message}`);
+    }
+    return;
+  }
+
   await ctx.reply(
     "📥 *Send a file or URL link to convert:*\n\n🔗 **Paste any Video URL**\n📄 **PDF / DOCX / TXT**\n🖼️ **PNG / JPG / WEBP**\n🎥 **Video / Video Note**",
     { parse_mode: 'Markdown' }
