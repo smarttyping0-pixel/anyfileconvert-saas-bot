@@ -119,12 +119,13 @@ async function convertImageToPdf(imagePath) {
 }
 
 /**
- * Remove Image Background
+ * Remove Image Background (Official remove.bg API or 100% Free Local AI engine)
  */
 async function removeImageBackground(imagePath, removeBgApiKey = '') {
   const apiKey = removeBgApiKey || (config && config.removeBgApiKey) || process.env.REMOVE_BG_API_KEY || '';
   const outputFilePath = path.join(TEMP_DIR, `nobg_${Date.now()}.png`);
 
+  // Option A: Use official remove.bg API key if configured
   if (apiKey) {
     try {
       const formData = new FormData();
@@ -142,14 +143,23 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
       fs.writeFileSync(outputFilePath, response.data);
       return outputFilePath;
     } catch (err) {
-      console.error('remove.bg API Error:', err.response?.data ? err.response.data.toString() : err.message);
-      throw new Error(`remove.bg API failed: ${err.message}`);
+      console.error('remove.bg API Error, switching to local AI:', err.message);
     }
   }
 
-  // Fallback transparent PNG processing
-  await sharp(imagePath).png().toFile(outputFilePath);
-  return outputFilePath;
+  // Option B: 100% Free Local AI Background Removal
+  try {
+    const { removeBackground } = require('@imgly/background-removal-node');
+    const blob = await removeBackground(imagePath);
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    fs.writeFileSync(outputFilePath, buffer);
+    return outputFilePath;
+  } catch (err) {
+    console.error('Local BG Removal Error:', err.message);
+    // Fallback PNG conversion
+    await sharp(imagePath).png().toFile(outputFilePath);
+    return outputFilePath;
+  }
 }
 
 // -------------------------------------------------------------------
