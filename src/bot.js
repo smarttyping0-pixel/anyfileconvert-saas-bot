@@ -110,19 +110,31 @@ bot.callbackQuery('task_imgcompress', async (ctx) => {
 
 // Dedicated Custom Callbacks
 bot.callbackQuery('resize_custom', async (ctx) => {
-  await ctx.answerCallbackQuery("✍️ Type custom size in chat!").catch(() => {});
+  await ctx.answerCallbackQuery("✍️ Type custom dimensions below!").catch(() => {});
   session.setUserTask(ctx.from.id, 'imgresize', {});
   await ctx.reply(
-    "✍️ *CUSTOM IMAGE RESIZE*\n\nType your custom dimensions directly in this chat, then send your photo!\n\n• **For Pixels:** Send `1200x800` or `1080x1080`\n• **For Scale:** Send `50%` or `75%`",
+    "✍️ *HOW TO TYPE CUSTOM IMAGE DIMENSIONS:*\n\n" +
+    "1️⃣ **Step 1:** Type your custom size in the Telegram message box below:\n" +
+    "   • **For Width x Height (Pixels):** Type `1200x800` or `1080x1080`\n" +
+    "   • **For Percentage Scale:** Type `50%` or `75%`\n\n" +
+    "2️⃣ **Step 2:** Press **Send**.\n\n" +
+    "3️⃣ **Step 3:** Send or upload your photo!\n\n" +
+    "👇 *Type your custom size in the chat below now:*",
     { parse_mode: 'Markdown' }
   );
 });
 
 bot.callbackQuery('compress_custom', async (ctx) => {
-  await ctx.answerCallbackQuery("✍️ Type target limit in chat!").catch(() => {});
+  await ctx.answerCallbackQuery("✍️ Type target size limit below!").catch(() => {});
   session.setUserTask(ctx.from.id, 'imgcompress', {});
   await ctx.reply(
-    "✍️ *CUSTOM PHOTO COMPRESSION*\n\nType your target file size limit directly in this chat, then send your photo!\n\n• **For KB Limit:** Send `150kb` or `300kb`\n• **For MB Limit:** Send `2mb` or `5mb`",
+    "✍️ *HOW TO TYPE CUSTOM FILE SIZE LIMIT:*\n\n" +
+    "1️⃣ **Step 1:** Type your target maximum file size in the Telegram message box below:\n" +
+    "   • **For KB Limit:** Type `150kb` or `300kb`\n" +
+    "   • **For MB Limit:** Type `2mb` or `5mb`\n\n" +
+    "2️⃣ **Step 2:** Press **Send**.\n\n" +
+    "3️⃣ **Step 3:** Send or upload your photo!\n\n" +
+    "👇 *Type your target file size limit in the chat below now:*",
     { parse_mode: 'Markdown' }
   );
 });

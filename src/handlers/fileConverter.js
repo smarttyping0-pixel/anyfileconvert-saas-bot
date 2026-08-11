@@ -83,7 +83,10 @@ async function promptResizeOptions(ctx) {
     .text("✍️ Type Custom Size", "resize_custom");
 
   await ctx.reply(
-    "📐 *IMAGE RESIZER CONFIGURATION*\n\nChoose your target dimensions / scale percentage below, or tap **✍️ Type Custom Size**!\n\n*(Default: 800x600 pixels)*",
+    "📐 *IMAGE RESIZER CONFIGURATION*\n\n" +
+    "• Tap one of the **preset buttons below** (`800x600`, `1080x1920`, `50%`), OR\n" +
+    "• Tap **✍️ Type Custom Size** to type custom width x height (e.g. `1200x800` or `50%`) in the chat box!\n\n" +
+    "📥 *Send your photo after choosing!*",
     { parse_mode: 'Markdown', reply_markup: keyboard }
   );
 }
@@ -98,7 +101,10 @@ async function promptCompressOptions(ctx) {
     .text("✍️ Type Custom Limit", "compress_custom");
 
   await ctx.reply(
-    "📉 *PHOTO FILE SIZE MINIMIZER CONFIGURATION*\n\nSelect your maximum target file size limit below, or tap **✍️ Type Custom Limit**!\n\n*(Default: 200 KB limit)*",
+    "📉 *PHOTO FILE SIZE MINIMIZER CONFIGURATION*\n\n" +
+    "• Tap one of the **target size buttons below** (`100 KB`, `200 KB`, `1 MB`), OR\n" +
+    "• Tap **✍️ Type Custom Limit** to type a target limit (e.g. `150kb` or `2mb`) in the chat box!\n\n" +
+    "📥 *Send your photo after choosing!*",
     { parse_mode: 'Markdown', reply_markup: keyboard }
   );
 }
