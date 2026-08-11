@@ -63,6 +63,14 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
         }
       }
       outputPath = await mediaService.convertTextToPdf(docText);
+    } else if (task === 'imgresize') {
+      const w = parseInt(req.body.width, 10) || 800;
+      const h = parseInt(req.body.height, 10) || 600;
+      const pct = parseInt(req.body.percentage, 10) || null;
+      outputPath = await mediaService.resizeImage(inputFilePath, w, h, pct);
+    } else if (task === 'imgcompress') {
+      const targetKb = parseInt(req.body.targetKb, 10) || 200;
+      outputPath = await mediaService.compressImageToTargetSize(inputFilePath, targetKb);
     } else if (task === 'imgconv') {
       outputPath = await mediaService.convertImageFormat(inputFilePath, 'png');
     } else {

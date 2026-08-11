@@ -601,6 +601,67 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
 }
 
 /**
+ * Resize Image by Pixels or Percentage (Horizontal / Vertical)
+ */
+async function resizeImage(imagePath, targetWidth = null, targetHeight = null, percentage = null) {
+  const outputFilePath = path.join(TEMP_DIR, `resized_${Date.now()}.png`);
+  const metadata = await sharp(imagePath).metadata();
+  
+  let w = metadata.width || 800;
+  let h = metadata.height || 600;
+
+  if (percentage && percentage > 0) {
+    const factor = percentage / 100;
+    w = Math.round(w * factor);
+    h = Math.round(h * factor);
+  } else {
+    if (targetWidth && targetWidth > 0) w = Math.round(targetWidth);
+    if (targetHeight && targetHeight > 0) h = Math.round(targetHeight);
+  }
+
+  await sharp(imagePath)
+    .resize({ width: w, height: h, fit: 'fill' })
+    .png()
+    .toFile(outputFilePath);
+
+  return outputFilePath;
+}
+
+/**
+ * Compress / Minimize Photo File Size to Target KB or MB
+ */
+async function compressImageToTargetSize(imagePath, targetSizeKb = 200) {
+  const outputFilePath = path.join(TEMP_DIR, `compressed_${Date.now()}.jpg`);
+  
+  let quality = 90;
+  let widthScale = 1.0;
+  const metadata = await sharp(imagePath).metadata();
+  const origW = metadata.width || 1200;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const curW = Math.max(100, Math.round(origW * widthScale));
+    await sharp(imagePath)
+      .resize({ width: curW, fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: Math.max(15, quality), mozjpeg: true })
+      .toFile(outputFilePath);
+
+    const stats = fs.statSync(outputFilePath);
+    const currentKb = stats.size / 1024;
+
+    if (currentKb <= targetSizeKb || (quality <= 20 && widthScale <= 0.3)) {
+      break;
+    }
+
+    quality -= 15;
+    if (quality < 35) {
+      widthScale *= 0.85;
+    }
+  }
+
+  return outputFilePath;
+}
+
+/**
  * Cleanup temporary files
  */
 function cleanupFile(filePath) {
@@ -620,6 +681,8 @@ module.exports = {
   convertImageToPdf,
   removeImageBackground,
   fillTransparentBackground,
+  resizeImage,
+  compressImageToTargetSize,
   extractTextFromImage,
   convertPdfToText,
   convertDocxToText,

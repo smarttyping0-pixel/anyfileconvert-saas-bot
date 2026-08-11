@@ -80,7 +80,7 @@ async function handleIncomingFile(ctx) {
   let activeTask = session.getUserTask(userId);
 
   // Only override task if user has not explicitly selected a task from the menu
-  if (!['fillbg', 'bgrem', 'imgconv', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv'].includes(activeTask)) {
+  if (!['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv'].includes(activeTask)) {
     if (ctx.message.photo) {
       activeTask = 'img2pdf';
     } else if (ctx.message.video || ctx.message.video_note) {
@@ -216,6 +216,26 @@ async function handleIncomingFile(ctx) {
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
         caption: "⚪ *Replaced Transparent Background with Solid White!*",
+        parse_mode: 'Markdown'
+      });
+    }
+    // 10. Task: Resize Image (Pixels & Percentage)
+    else if (activeTask === 'imgresize') {
+      outputPath = await mediaService.resizeImage(localInputPath, 800, 600);
+      db.deductCredits(userId, 1);
+      await ctx.replyWithDocument(new InputFile(outputPath), {
+        caption: "📐 *Resized Image (800x600 Pixels)!*",
+        parse_mode: 'Markdown'
+      });
+    }
+    // 11. Task: Compress / Minimize Photo Size (KB/MB)
+    else if (activeTask === 'imgcompress') {
+      outputPath = await mediaService.compressImageToTargetSize(localInputPath, 200);
+      const stats = fs.statSync(outputPath);
+      const sizeKb = Math.round(stats.size / 1024);
+      db.deductCredits(userId, 1);
+      await ctx.replyWithDocument(new InputFile(outputPath), {
+        caption: `📉 *Compressed Photo File Size (${sizeKb} KB)!*`,
         parse_mode: 'Markdown'
       });
     }

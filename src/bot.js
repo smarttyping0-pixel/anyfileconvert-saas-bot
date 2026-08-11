@@ -96,6 +96,16 @@ bot.callbackQuery('task_fillbg', async (ctx) => {
   return selectTask(ctx, 'fillbg', '⚪ Fill Transparent Background with White');
 });
 
+bot.callbackQuery('task_imgresize', async (ctx) => {
+  await ctx.answerCallbackQuery().catch(() => {});
+  return selectTask(ctx, 'imgresize', '📐 Resize Image (Pixels & Percentage)');
+});
+
+bot.callbackQuery('task_imgcompress', async (ctx) => {
+  await ctx.answerCallbackQuery().catch(() => {});
+  return selectTask(ctx, 'imgcompress', '📉 Compress Photo File Size (KB/MB)');
+});
+
 bot.callbackQuery('task_pdf2txt', async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
   return selectTask(ctx, 'pdf2txt', '📝 PDF to Text File (.txt)');
@@ -158,6 +168,8 @@ bot.hears("🎬 Video to GIF", (ctx) => selectTask(ctx, 'v2gif', '🎬 Video to 
 bot.hears("📄 Image to PDF", (ctx) => selectTask(ctx, 'img2pdf', '📄 Image to PDF Document'));
 bot.hears("✂️ Remove BG", (ctx) => selectTask(ctx, 'bgrem', '✂️ Remove Image Background'));
 bot.hears("⚪ Fill Transparent BG", (ctx) => selectTask(ctx, 'fillbg', '⚪ Fill Transparent Background with White'));
+bot.hears("📐 Resize Image", (ctx) => selectTask(ctx, 'imgresize', '📐 Resize Image (Pixels & Percentage)'));
+bot.hears("📉 Compress Photo", (ctx) => selectTask(ctx, 'imgcompress', '📉 Compress Photo File Size (KB/MB)'));
 bot.hears("📝 PDF to Text", (ctx) => selectTask(ctx, 'pdf2txt', '📝 PDF to Text File (.txt)'));
 bot.hears("📘 DOCX to PDF", (ctx) => selectTask(ctx, 'docx2pdf', '📘 Word DOCX to PDF Document'));
 bot.hears("🖼️ Convert PNG/JPG", (ctx) => selectTask(ctx, 'imgconv', '🖼️ Convert Image (PNG/JPG/WEBP)'));
