@@ -270,39 +270,55 @@ async function convertDocxToText(docxPath) {
 }
 
 /**
- * Convert Plain Text or DOCX to PDF
+ * Convert Plain Text or DOCX to PDF (Auto line wrapping & multi-page support)
  */
 async function convertTextToPdf(textContent) {
   const outputFilePath = path.join(TEMP_DIR, `doc_${Date.now()}.pdf`);
   const pdfDoc = await PDFDocument.create();
 
-  const safeContent = typeof textContent === 'string' && textContent.trim() ? textContent : "No text content found.";
-  const timesRomanFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  let page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
+  const safeContent = typeof textContent === 'string' && textContent.trim() ? textContent : "No text content provided.";
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  let page = pdfDoc.addPage([595.28, 841.89]); // Standard A4 Size
   const { height } = page.getSize();
-  const fontSize = 11;
-  const margin = 40;
+  const fontSize = 10;
+  const lineHeight = 14;
+  const margin = 45;
+  const maxCharsPerLine = 85;
 
-  const lines = safeContent.split('\n');
+  const rawLines = safeContent.split(/\r?\n/);
   let y = height - margin;
 
-  for (const line of lines) {
-    if (y < margin + 20 || isNaN(y)) {
-      page = pdfDoc.addPage([595.28, 841.89]);
-      y = height - margin;
-    }
+  for (const rawLine of rawLines) {
+    // Sanitize non-ASCII unicode characters to standard ASCII representation for Helvetica
+    const sanitizedLine = (rawLine || '')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/[^\x00-\x7F]/g, " ");
 
-    const safeText = (line || '').substring(0, 90).replace(/[^\x00-\x7F]/g, "?");
-    if (safeText.trim()) {
-      page.drawText(safeText, {
-        x: margin,
-        y: isNaN(y) ? margin : y,
-        size: fontSize,
-        font: timesRomanFont,
-        color: rgb(0, 0, 0),
-      });
+    // Auto line wrapping for long paragraphs
+    let currentPos = 0;
+    while (currentPos < sanitizedLine.length || (currentPos === 0 && sanitizedLine.length === 0)) {
+      if (y < margin + lineHeight) {
+        page = pdfDoc.addPage([595.28, 841.89]);
+        y = height - margin;
+      }
+
+      const chunk = sanitizedLine.substring(currentPos, currentPos + maxCharsPerLine);
+      if (chunk.trim()) {
+        page.drawText(chunk, {
+          x: margin,
+          y: y,
+          size: fontSize,
+          font: font,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+      }
+
+      y -= lineHeight;
+      currentPos += maxCharsPerLine;
+      if (sanitizedLine.length === 0) break;
     }
-    y -= fontSize + 4;
   }
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
