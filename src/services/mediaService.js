@@ -12,8 +12,8 @@ const config = require('../config');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-// Limit Sharp image memory usage for 512MB RAM cloud hosting
-sharp.cache({ files: 0, items: 10, memory: 32 });
+// Disable Sharp internal image memory cache for 512MB RAM cloud hosting
+sharp.cache(false);
 sharp.concurrency(1);
 
 const TEMP_DIR = path.join(__dirname, '../../temp');
@@ -172,11 +172,13 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     const blob = await removeBackground(imagePath);
     const buffer = Buffer.from(await blob.arrayBuffer());
     fs.writeFileSync(outputFilePath, buffer);
+    if (global.gc) global.gc(); // Instantly free V8 heap memory after AI processing
     return outputFilePath;
   } catch (err) {
     console.error('Local BG Removal Error:', err.message);
     // Fallback PNG conversion
     await sharp(imagePath).png().toFile(outputFilePath);
+    if (global.gc) global.gc();
     return outputFilePath;
   }
 }
