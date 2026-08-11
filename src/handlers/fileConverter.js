@@ -157,14 +157,19 @@ async function handleIncomingFile(ctx) {
         parse_mode: 'Markdown'
       });
     }
-    // 5. Task: PDF to Text
+    // 5. Task: PDF & Image to Text (OCR)
     else if (activeTask === 'pdf2txt') {
-      const extractedText = await mediaService.convertPdfToText(localInputPath);
+      let extractedText = '';
+      if (['.png', '.jpg', '.jpeg', '.webp'].includes(fileExt)) {
+        extractedText = await mediaService.extractTextFromImage(localInputPath);
+      } else {
+        extractedText = await mediaService.convertPdfToText(localInputPath);
+      }
       outputPath = path.join(mediaService.TEMP_DIR, `extracted_${Date.now()}.txt`);
       fs.writeFileSync(outputPath, extractedText, 'utf8');
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: "📝 *Extracted Text from PDF!*",
+        caption: "📝 *Extracted Text Document (OCR)!*",
         parse_mode: 'Markdown'
       });
     }
