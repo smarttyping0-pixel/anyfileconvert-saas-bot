@@ -198,7 +198,7 @@ async function extractTextFromImage(imagePath) {
 }
 
 /**
- * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json
+ * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json + Embedded Image OCR
  */
 async function convertPdfToText(pdfPath) {
   // Method A: Primary Mozilla PDF.js Engine (Handles all complex, un-XRef'd & custom font PDFs)
@@ -258,7 +258,46 @@ async function convertPdfToText(pdfPath) {
     console.error("pdf2json error:", err.message);
   }
 
-  throw new Error("Unable to extract text from this PDF file. It may be password-protected or encrypted. Please upload an unprotected PDF file!");
+  // Method D: Scanned Image PDF - OCR Extraction from embedded page images
+  try {
+    const pdfDoc = await PDFDocument.load(fs.readFileSync(pdfPath), { ignoreEncryption: true });
+    const { createWorker } = require('tesseract.js');
+    let ocrText = '';
+
+    for (let i = 0; i < pdfDoc.getPageCount(); i++) {
+      const page = pdfDoc.getPage(i);
+      const { node } = page;
+      const resources = node.Resources ? node.Resources() : null;
+      if (!resources) continue;
+      const xObjects = resources.get(PDFName.of('XObject'));
+      if (!xObjects) continue;
+
+      for (const key of xObjects.keys()) {
+        const xObject = xObjects.get(key);
+        if (xObject && xObject.get && xObject.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
+          try {
+            const imgBuffer = Buffer.from(xObject.contents);
+            if (imgBuffer && imgBuffer.length > 500) {
+              const worker = await createWorker('eng');
+              const ret = await worker.recognize(imgBuffer);
+              await worker.terminate();
+              if (ret.data && ret.data.text && ret.data.text.trim()) {
+                ocrText += `--- Scanned Page ${i + 1} (OCR) ---\n${ret.data.text.trim()}\n\n`;
+              }
+            }
+          } catch (imgErr) {
+            console.error("OCR Image Stream parse error:", imgErr.message);
+          }
+        }
+      }
+    }
+
+    if (ocrText.trim()) return ocrText.trim();
+  } catch (ocrErr) {
+    console.error("Scanned PDF OCR error:", ocrErr.message);
+  }
+
+  throw new Error("Unable to extract text from this PDF file. It may be password-protected or heavily encrypted. Please upload an unprotected PDF file!");
 }
 
 /**
