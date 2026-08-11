@@ -98,12 +98,39 @@ bot.callbackQuery('task_fillbg', async (ctx) => {
 
 bot.callbackQuery('task_imgresize', async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
-  return selectTask(ctx, 'imgresize', '📐 Resize Image (Pixels & Percentage)');
+  const { promptResizeOptions } = require('./handlers/fileConverter');
+  return promptResizeOptions(ctx);
 });
 
 bot.callbackQuery('task_imgcompress', async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
-  return selectTask(ctx, 'imgcompress', '📉 Compress Photo File Size (KB/MB)');
+  const { promptCompressOptions } = require('./handlers/fileConverter');
+  return promptCompressOptions(ctx);
+});
+
+// Resize Presets
+bot.callbackQuery(/^resize_(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery().catch(() => {});
+  const val = ctx.match[1];
+  if (val.startsWith('pct_')) {
+    const pct = parseInt(val.replace('pct_', ''), 10);
+    session.setUserTask(ctx.from.id, 'imgresize', { percentage: pct });
+    await ctx.reply(`✅ *Resize Mode Set:* ${pct}% Scale!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+  } else {
+    const parts = val.split('x');
+    const w = parseInt(parts[0], 10);
+    const h = parseInt(parts[1], 10);
+    session.setUserTask(ctx.from.id, 'imgresize', { width: w, height: h });
+    await ctx.reply(`✅ *Resize Mode Set:* ${w} x ${h} pixels!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+  }
+});
+
+// Compress Presets
+bot.callbackQuery(/^compress_(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery().catch(() => {});
+  const kb = parseInt(ctx.match[1], 10);
+  session.setUserTask(ctx.from.id, 'imgcompress', { targetKb: kb });
+  await ctx.reply(`✅ *Compress Limit Set:* Maximum ${kb} KB!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
 });
 
 bot.callbackQuery('task_pdf2txt', async (ctx) => {
@@ -168,8 +195,14 @@ bot.hears("🎬 Video to GIF", (ctx) => selectTask(ctx, 'v2gif', '🎬 Video to 
 bot.hears("📄 Image to PDF", (ctx) => selectTask(ctx, 'img2pdf', '📄 Image to PDF Document'));
 bot.hears("✂️ Remove BG", (ctx) => selectTask(ctx, 'bgrem', '✂️ Remove Image Background'));
 bot.hears("⚪ Fill Transparent BG", (ctx) => selectTask(ctx, 'fillbg', '⚪ Fill Transparent Background with White'));
-bot.hears("📐 Resize Image", (ctx) => selectTask(ctx, 'imgresize', '📐 Resize Image (Pixels & Percentage)'));
-bot.hears("📉 Compress Photo", (ctx) => selectTask(ctx, 'imgcompress', '📉 Compress Photo File Size (KB/MB)'));
+bot.hears("📐 Resize Image", (ctx) => {
+  const { promptResizeOptions } = require('./handlers/fileConverter');
+  return promptResizeOptions(ctx);
+});
+bot.hears("📉 Compress Photo", (ctx) => {
+  const { promptCompressOptions } = require('./handlers/fileConverter');
+  return promptCompressOptions(ctx);
+});
 bot.hears("📝 PDF to Text", (ctx) => selectTask(ctx, 'pdf2txt', '📝 PDF to Text File (.txt)'));
 bot.hears("📘 DOCX to PDF", (ctx) => selectTask(ctx, 'docx2pdf', '📘 Word DOCX to PDF Document'));
 bot.hears("🖼️ Convert PNG/JPG", (ctx) => selectTask(ctx, 'imgconv', '🖼️ Convert Image (PNG/JPG/WEBP)'));
@@ -200,6 +233,32 @@ bot.on('message:text', async (ctx) => {
   }
 
   const activeTask = session.getUserTask(ctx.from.id);
+
+  if (activeTask === 'imgresize') {
+    if (/^\d+\s*x\s*\d+$/i.test(text)) {
+      const parts = text.toLowerCase().split('x');
+      const w = parseInt(parts[0].trim(), 10);
+      const h = parseInt(parts[1].trim(), 10);
+      session.setUserTask(ctx.from.id, 'imgresize', { width: w, height: h });
+      return ctx.reply(`✅ *Custom Dimensions Set:* ${w} x ${h} pixels!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+    } else if (/^\d+\s*%$/.test(text)) {
+      const pct = parseInt(text.replace('%', '').trim(), 10);
+      session.setUserTask(ctx.from.id, 'imgresize', { percentage: pct });
+      return ctx.reply(`✅ *Custom Scale Set:* ${pct}% Scale!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+    }
+  }
+
+  if (activeTask === 'imgcompress') {
+    const match = text.match(/^(\d+)\s*(kb|mb)?$/i);
+    if (match) {
+      let kb = parseInt(match[1], 10);
+      const unit = (match[2] || 'kb').toLowerCase();
+      if (unit === 'mb') kb = kb * 1024;
+      session.setUserTask(ctx.from.id, 'imgcompress', { targetKb: kb });
+      return ctx.reply(`✅ *Custom Target Size Set:* Maximum ${kb} KB!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+    }
+  }
+
   if (activeTask === 'docx2pdf') {
     const { hasEnoughCredits } = require('./handlers/fileConverter');
     if (!hasEnoughCredits(ctx, 1)) return;

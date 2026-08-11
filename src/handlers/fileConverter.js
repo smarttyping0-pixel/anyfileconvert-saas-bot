@@ -61,14 +61,33 @@ async function downloadTelegramFile(telegramFilePath, localDestinationPath) {
   });
 }
 
-/**
- * Menu Task Prompts & Handlers
- */
-async function selectTask(ctx, taskType, promptText) {
-  session.setUserTask(ctx.from.id, taskType);
+async function promptResizeOptions(ctx) {
+  session.setUserTask(ctx.from.id, 'imgresize', { width: 800, height: 600 });
+  const keyboard = new InlineKeyboard()
+    .text("800 x 600 px", "resize_800x600")
+    .text("1080 x 1920 px (Story)", "resize_1080x1920").row()
+    .text("1920 x 1080 px (HD)", "resize_1920x1080")
+    .text("50% Scale", "resize_pct_50").row()
+    .text("75% Scale", "resize_pct_75")
+    .text("25% Scale", "resize_pct_25");
+
   await ctx.reply(
-    `✅ *Selected Task:* ${promptText}\n\n📥 *Please send or forward your file now to convert it!*`,
-    { parse_mode: 'Markdown' }
+    "📐 *IMAGE RESIZER CONFIGURATION*\n\nChoose your target dimensions / scale percentage below, then send your photo!\n\n*(Default: 800x600 pixels)*",
+    { parse_mode: 'Markdown', reply_markup: keyboard }
+  );
+}
+
+async function promptCompressOptions(ctx) {
+  session.setUserTask(ctx.from.id, 'imgcompress', { targetKb: 200 });
+  const keyboard = new InlineKeyboard()
+    .text("100 KB (Job Upload)", "compress_100")
+    .text("200 KB (Passport)", "compress_200").row()
+    .text("500 KB (Standard Web)", "compress_500")
+    .text("1 MB (HD Web)", "compress_1000");
+
+  await ctx.reply(
+    "📉 *PHOTO FILE SIZE MINIMIZER CONFIGURATION*\n\nSelect your maximum target file size limit below, then send your photo!\n\n*(Default: 200 KB limit)*",
+    { parse_mode: 'Markdown', reply_markup: keyboard }
   );
 }
 
@@ -221,21 +240,30 @@ async function handleIncomingFile(ctx) {
     }
     // 10. Task: Resize Image (Pixels & Percentage)
     else if (activeTask === 'imgresize') {
-      outputPath = await mediaService.resizeImage(localInputPath, 800, 600);
+      const userOptions = session.getUserOptions(userId);
+      const w = userOptions.width || 800;
+      const h = userOptions.height || 600;
+      const pct = userOptions.percentage || null;
+
+      outputPath = await mediaService.resizeImage(localInputPath, w, h, pct);
+      const label = pct ? `${pct}% Scale` : `${w}x${h} px`;
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: "📐 *Resized Image (800x600 Pixels)!*",
+        caption: `📐 *Resized Image (${label})!*`,
         parse_mode: 'Markdown'
       });
     }
     // 11. Task: Compress / Minimize Photo Size (KB/MB)
     else if (activeTask === 'imgcompress') {
-      outputPath = await mediaService.compressImageToTargetSize(localInputPath, 200);
+      const userOptions = session.getUserOptions(userId);
+      const targetKb = userOptions.targetKb || 200;
+
+      outputPath = await mediaService.compressImageToTargetSize(localInputPath, targetKb);
       const stats = fs.statSync(outputPath);
       const sizeKb = Math.round(stats.size / 1024);
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: `📉 *Compressed Photo File Size (${sizeKb} KB)!*`,
+        caption: `📉 *Compressed Photo File Size (${sizeKb} KB / Target: ${targetKb} KB)!*`,
         parse_mode: 'Markdown'
       });
     }
@@ -278,6 +306,8 @@ async function handleUrlConversion(ctx, videoUrl) {
 
 module.exports = {
   selectTask,
+  promptResizeOptions,
+  promptCompressOptions,
   handleIncomingFile,
   handleUrlConversion
 };
