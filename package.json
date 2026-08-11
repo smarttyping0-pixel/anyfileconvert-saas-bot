@@ -4,7 +4,7 @@
   "description": "Telegram Micro-SaaS Bot & Telegram Mini App (TMA) for All-in-One Format Conversions",
   "main": "src/bot.js",
   "scripts": {
-    "start": "node src/bot.js",
+    "start": "node --max-old-space-size=384 src/bot.js",
     "dev": "node --watch src/bot.js"
   },
   "dependencies": {

@@ -12,6 +12,10 @@ const config = require('../config');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
+// Limit Sharp image memory usage for 512MB RAM cloud hosting
+sharp.cache({ files: 0, items: 10, memory: 32 });
+sharp.concurrency(1);
+
 const TEMP_DIR = path.join(__dirname, '../../temp');
 if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
