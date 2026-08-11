@@ -6,6 +6,7 @@ const { handleUpgrade, sendInvoice, handleSuccessfulPayment } = require('./handl
 const { handleReferral, handleDailyBonus, handleFeedback } = require('./handlers/userFeatures');
 const { handleBroadcast, handleStats } = require('./handlers/admin');
 const db = require('./services/database');
+const session = require('./services/session');
 
 if (!config.botToken) {
   console.error("❌ BOT_TOKEN is missing in environment variables! Please check your .env file.");
