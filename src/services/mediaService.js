@@ -97,20 +97,34 @@ async function convertImageFormat(imagePath, targetFormat = 'png') {
 /**
  * Convert Image to PDF
  */
+/**
+ * Convert Image to PDF with NaN dimension protection
+ */
 async function convertImageToPdf(imagePath) {
   const outputFilePath = path.join(TEMP_DIR, `doc_${Date.now()}.pdf`);
   const pdfDoc = await PDFDocument.create();
 
-  // Rotate image based on EXIF orientation and convert to JPEG buffer
-  const jpegBuffer = await sharp(imagePath).rotate().jpeg({ quality: 90 }).toBuffer();
-  const image = await pdfDoc.embedJpg(jpegBuffer);
+  // Inspect metadata safely to ensure valid numeric dimensions
+  const metadata = await sharp(imagePath).rotate().metadata();
+  const validWidth = metadata.width && !isNaN(metadata.width) && metadata.width > 0 ? metadata.width : 595;
+  const validHeight = metadata.height && !isNaN(metadata.height) && metadata.height > 0 ? metadata.height : 842;
 
-  const page = pdfDoc.addPage([image.width, image.height]);
+  const jpegBuffer = await sharp(imagePath)
+    .rotate()
+    .resize({ width: validWidth, height: validHeight, fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+
+  const image = await pdfDoc.embedJpg(jpegBuffer);
+  const imgWidth = image.width && !isNaN(image.width) && image.width > 0 ? image.width : validWidth;
+  const imgHeight = image.height && !isNaN(image.height) && image.height > 0 ? image.height : validHeight;
+
+  const page = pdfDoc.addPage([imgWidth, imgHeight]);
   page.drawImage(image, {
     x: 0,
     y: 0,
-    width: image.width,
-    height: image.height,
+    width: imgWidth,
+    height: imgHeight,
   });
 
   const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
@@ -203,31 +217,32 @@ async function convertTextToPdf(textContent) {
   const outputFilePath = path.join(TEMP_DIR, `doc_${Date.now()}.pdf`);
   const pdfDoc = await PDFDocument.create();
 
+  const safeContent = typeof textContent === 'string' && textContent.trim() ? textContent : "No text content found.";
   const timesRomanFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
   let page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
   const { height } = page.getSize();
   const fontSize = 11;
   const margin = 40;
-  const maxLineWidth = 515;
 
-  const lines = textContent.split('\n');
+  const lines = safeContent.split('\n');
   let y = height - margin;
 
   for (const line of lines) {
-    if (y < margin + 20) {
+    if (y < margin + 20 || isNaN(y)) {
       page = pdfDoc.addPage([595.28, 841.89]);
       y = height - margin;
     }
 
-    // Truncate long lines if needed for standard layout
-    const safeText = line.substring(0, 90).replace(/[^\x00-\x7F]/g, "?");
-    page.drawText(safeText, {
-      x: margin,
-      y: y,
-      size: fontSize,
-      font: timesRomanFont,
-      color: rgb(0, 0, 0),
-    });
+    const safeText = (line || '').substring(0, 90).replace(/[^\x00-\x7F]/g, "?");
+    if (safeText.trim()) {
+      page.drawText(safeText, {
+        x: margin,
+        y: isNaN(y) ? margin : y,
+        size: fontSize,
+        font: timesRomanFont,
+        color: rgb(0, 0, 0),
+      });
+    }
     y -= fontSize + 4;
   }
 

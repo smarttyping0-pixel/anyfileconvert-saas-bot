@@ -35,6 +35,16 @@
       "lastDailyClaim": "",
       "referralsCount": 0,
       "createdAt": "2026-08-10T17:51:35.089Z"
+    },
+    "demo_user": {
+      "id": "demo_user",
+      "username": "",
+      "plan": "free",
+      "credits": 9,
+      "lastReset": "2026-08-11",
+      "lastDailyClaim": "",
+      "referralsCount": 0,
+      "createdAt": "2026-08-11T02:46:55.711Z"
     }
   },
   "transactions": []
