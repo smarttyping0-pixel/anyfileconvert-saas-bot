@@ -148,8 +148,8 @@ app.use((err, req, res, next) => {
 
 // Start Express Server
 function startServer() {
-  app.listen(PORT, () => {
-    console.log(`🌐 Mini App Web Server is running on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Mini App Web Server is running on port ${PORT} (0.0.0.0)`);
   });
 }
 
