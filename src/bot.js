@@ -337,6 +337,17 @@ bot.api.setChatMenuButton({
 const { startServer } = require('./server');
 startServer();
 
-// Start Telegram Bot
+// Start Telegram Bot with automatic 409 Conflict reconnect recovery
 console.log("⚡ All-in-One Format Converter & Telegram Mini App Bot is running...");
-bot.start();
+bot.start({
+  onStart: (botInfo) => {
+    console.log(`🤖 Bot @${botInfo.username} started long-polling updates!`);
+  }
+}).catch((err) => {
+  if (err && (err.error_code === 409 || (err.message && err.message.includes('409')))) {
+    console.warn("⚠️ 409 Conflict detected during container restart. Retrying long-polling in 5s...");
+    setTimeout(() => bot.start().catch(() => {}), 5000);
+  } else {
+    console.error("Bot start error:", err);
+  }
+});
