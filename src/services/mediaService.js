@@ -198,96 +198,115 @@ async function extractTextFromImage(imagePath) {
 }
 
 /**
- * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json + Raw Stream TJ Extractor
+ * Extract Text from PDF file using Auto-Decryption + Mozilla PDF.js + pdf-parse + pdf2json + Raw Stream TJ Extractor
  */
 async function convertPdfToText(pdfPath) {
-  // Method A: Primary Mozilla PDF.js Engine (Handles all complex, un-XRef'd & custom font PDFs)
+  let targetPdfPath = pdfPath;
+  let tempCleanPath = null;
+
+  // Step 0: Auto-unprotect / decrypt PDF using pdf-lib ignoreEncryption
   try {
-    const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
-    const dataBuffer = fs.readFileSync(pdfPath);
-    const data = new Uint8Array(dataBuffer);
-    const loadingTask = pdfjsLib.getDocument({
-      data,
-      disableFontFace: true,
-      useSystemFonts: true
-    });
-    const pdfDocument = await loadingTask.promise;
+    const rawBuffer = fs.readFileSync(pdfPath);
+    const pdfDoc = await PDFDocument.load(rawBuffer, { ignoreEncryption: true });
+    const cleanBytes = await pdfDoc.save({ useObjectStreams: false });
+    tempCleanPath = path.join(TEMP_DIR, `clean_${Date.now()}.pdf`);
+    fs.writeFileSync(tempCleanPath, cleanBytes);
+    targetPdfPath = tempCleanPath;
+  } catch (e) {
+    console.error("PDF auto-unprotect attempt note:", e.message);
+  }
 
-    let fullText = '';
-    for (let i = 1; i <= pdfDocument.numPages; i++) {
-      const page = await pdfDocument.getPage(i);
-      const textContent = await page.getTextContent({
-        normalizeWhitespace: true,
-        disableCombineTextItems: false
+  try {
+    // Method A: Primary Mozilla PDF.js Engine (Handles all complex, un-XRef'd & custom font PDFs)
+    try {
+      const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+      const dataBuffer = fs.readFileSync(targetPdfPath);
+      const data = new Uint8Array(dataBuffer);
+      const loadingTask = pdfjsLib.getDocument({
+        data,
+        disableFontFace: true,
+        useSystemFonts: true
       });
+      const pdfDocument = await loadingTask.promise;
 
-      const pageText = (textContent.items || [])
-        .map(item => (typeof item.str === 'string' ? item.str : ''))
-        .filter(Boolean)
-        .join(' ');
+      let fullText = '';
+      for (let i = 1; i <= pdfDocument.numPages; i++) {
+        const page = await pdfDocument.getPage(i);
+        const textContent = await page.getTextContent({
+          normalizeWhitespace: true,
+          disableCombineTextItems: false
+        });
 
-      if (pageText.trim()) {
-        fullText += `--- Page ${i} ---\n${pageText.trim()}\n\n`;
+        const pageText = (textContent.items || [])
+          .map(item => (typeof item.str === 'string' ? item.str : ''))
+          .filter(Boolean)
+          .join(' ');
+
+        if (pageText.trim()) {
+          fullText += `--- Page ${i} ---\n${pageText.trim()}\n\n`;
+        }
       }
+      if (fullText.trim()) return fullText.trim();
+    } catch (err) {
+      console.error("Mozilla PDF.js error, attempting pdf-parse fallback:", err.message);
     }
-    if (fullText.trim()) return fullText.trim();
-  } catch (err) {
-    console.error("Mozilla PDF.js error, attempting pdf-parse fallback:", err.message);
-  }
 
-  // Method B: Fallback pdf-parse
-  try {
-    const pdfParse = require('pdf-parse');
-    const dataBuffer = fs.readFileSync(pdfPath);
-    const parsed = await pdfParse(dataBuffer);
-    if (parsed && parsed.text && parsed.text.trim()) {
-      return parsed.text.trim();
-    }
-  } catch (err) {
-    console.error("pdf-parse fallback error:", err.message);
-  }
-
-  // Method C: Fallback pdf2json
-  try {
-    const text = await new Promise((resolve, reject) => {
-      const PDFParser = require('pdf2json');
-      const pdfParser = new PDFParser(null, 1);
-
-      pdfParser.on('pdfParser_dataError', (errData) => {
-        reject(new Error(errData.parserError || 'Failed to parse PDF text'));
-      });
-
-      pdfParser.on('pdfParser_dataReady', () => {
-        const rawText = pdfParser.getRawTextContent();
-        resolve(rawText || '');
-      });
-
-      pdfParser.loadPDF(pdfPath);
-    });
-
-    if (text && text.trim()) return text.trim();
-  } catch (err) {
-    console.error("pdf2json error:", err.message);
-  }
-
-  // Method D: Raw Stream TJ/Tj Operator Extractor (Reads text directly from raw binary PDF stream)
-  try {
-    const rawBuffer = fs.readFileSync(pdfPath).toString('binary');
-    const matches = rawBuffer.match(/\(([^()]+)\)\s*TJ|\(([^()]+)\)\s*Tj/g);
-    if (matches && matches.length > 0) {
-      const extractedStrings = matches
-        .map(m => m.replace(/[()]/g, '').replace(/\s*(TJ|Tj)/, ''))
-        .filter(str => str.length > 2 && /[a-zA-Z0-9]/.test(str))
-        .join(' ');
-      if (extractedStrings.trim().length > 10) {
-        return extractedStrings.trim();
+    // Method B: Fallback pdf-parse
+    try {
+      const pdfParse = require('pdf-parse');
+      const dataBuffer = fs.readFileSync(targetPdfPath);
+      const parsed = await pdfParse(dataBuffer);
+      if (parsed && parsed.text && parsed.text.trim()) {
+        return parsed.text.trim();
       }
+    } catch (err) {
+      console.error("pdf-parse fallback error:", err.message);
     }
-  } catch (rawErr) {
-    console.error("Raw stream extraction error:", rawErr.message);
-  }
 
-  throw new Error("Unable to extract text from this PDF file. It may be password-protected, encrypted, or a scanned image PDF (without digital text). Please upload an unprotected text PDF file!");
+    // Method C: Fallback pdf2json
+    try {
+      const text = await new Promise((resolve, reject) => {
+        const PDFParser = require('pdf2json');
+        const pdfParser = new PDFParser(null, 1);
+
+        pdfParser.on('pdfParser_dataError', (errData) => {
+          reject(new Error(errData.parserError || 'Failed to parse PDF text'));
+        });
+
+        pdfParser.on('pdfParser_dataReady', () => {
+          const rawText = pdfParser.getRawTextContent();
+          resolve(rawText || '');
+        });
+
+        pdfParser.loadPDF(targetPdfPath);
+      });
+
+      if (text && text.trim()) return text.trim();
+    } catch (err) {
+      console.error("pdf2json error:", err.message);
+    }
+
+    // Method D: Raw Stream TJ/Tj Operator Extractor (Reads text directly from raw binary PDF stream)
+    try {
+      const rawBuffer = fs.readFileSync(pdfPath).toString('binary');
+      const matches = rawBuffer.match(/\(([^()]+)\)\s*TJ|\(([^()]+)\)\s*Tj/g);
+      if (matches && matches.length > 0) {
+        const extractedStrings = matches
+          .map(m => m.replace(/[()]/g, '').replace(/\s*(TJ|Tj)/, ''))
+          .filter(str => str.length > 2 && /[a-zA-Z0-9]/.test(str))
+          .join(' ');
+        if (extractedStrings.trim().length > 10) {
+          return extractedStrings.trim();
+        }
+      }
+    } catch (rawErr) {
+      console.error("Raw stream extraction error:", rawErr.message);
+    }
+
+    throw new Error("Unable to extract text from this PDF. It appears to be an image-only scanned document without digital text fonts. Try converting images directly!");
+  } finally {
+    if (tempCleanPath) cleanupFile(tempCleanPath);
+  }
 }
 
 /**
