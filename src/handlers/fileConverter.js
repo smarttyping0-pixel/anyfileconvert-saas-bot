@@ -263,7 +263,19 @@ async function handleIncomingFile(ctx) {
     }
     // 10. Task: Resize Image (Pixels & Percentage)
     else if (activeTask === 'imgresize') {
-      const userOptions = session.getUserOptions(userId);
+      let userOptions = session.getUserOptions(userId);
+      const caption = (ctx.message.caption || '').trim();
+
+      if (caption) {
+        const pctMatch = caption.match(/(\d+)\s*%/);
+        const dimMatch = caption.match(/(\d+)\s*[*x,:\s]\s*(\d+)/i);
+        if (pctMatch) {
+          userOptions = { percentage: parseInt(pctMatch[1], 10) };
+        } else if (dimMatch) {
+          userOptions = { width: parseInt(dimMatch[1], 10), height: parseInt(dimMatch[2], 10) };
+        }
+      }
+
       const w = userOptions.width || 800;
       const h = userOptions.height || 600;
       const pct = userOptions.percentage || null;

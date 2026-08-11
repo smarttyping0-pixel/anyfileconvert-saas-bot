@@ -266,27 +266,30 @@ bot.on('message:text', async (ctx) => {
   const activeTask = session.getUserTask(ctx.from.id);
 
   if (activeTask === 'imgresize') {
-    if (/^\d+\s*x\s*\d+$/i.test(text)) {
-      const parts = text.toLowerCase().split('x');
-      const w = parseInt(parts[0].trim(), 10);
-      const h = parseInt(parts[1].trim(), 10);
-      session.setUserTask(ctx.from.id, 'imgresize', { width: w, height: h });
-      return ctx.reply(`✅ *Custom Dimensions Set:* ${w} x ${h} pixels!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
-    } else if (/^\d+\s*%$/.test(text)) {
-      const pct = parseInt(text.replace('%', '').trim(), 10);
+    const pctMatch = text.match(/(\d+)\s*%/);
+    if (pctMatch) {
+      const pct = parseInt(pctMatch[1], 10);
       session.setUserTask(ctx.from.id, 'imgresize', { percentage: pct });
-      return ctx.reply(`✅ *Custom Scale Set:* ${pct}% Scale!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+      return ctx.reply(`✅ *Custom Scale Set:* ${pct}% Scale!\n\n📥 *Now send or upload your photo to resize!*`, { parse_mode: 'Markdown' });
+    }
+
+    const dimMatch = text.match(/(\d+)\s*[*x,:\s]\s*(\d+)/i);
+    if (dimMatch) {
+      const w = parseInt(dimMatch[1], 10);
+      const h = parseInt(dimMatch[2], 10);
+      session.setUserTask(ctx.from.id, 'imgresize', { width: w, height: h });
+      return ctx.reply(`✅ *Custom Dimensions Set:* ${w} x ${h} pixels!\n\n📥 *Now send or upload your photo to resize!*`, { parse_mode: 'Markdown' });
     }
   }
 
   if (activeTask === 'imgcompress') {
-    const match = text.match(/^(\d+)\s*(kb|mb)?$/i);
+    const match = text.match(/(\d+)\s*(kb|mb)?/i);
     if (match) {
       let kb = parseInt(match[1], 10);
       const unit = (match[2] || 'kb').toLowerCase();
       if (unit === 'mb') kb = kb * 1024;
       session.setUserTask(ctx.from.id, 'imgcompress', { targetKb: kb });
-      return ctx.reply(`✅ *Custom Target Size Set:* Maximum ${kb} KB!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });
+      return ctx.reply(`✅ *Custom Target Size Set:* Maximum ${kb} KB!\n\n📥 *Now send or upload your photo to compress!*`, { parse_mode: 'Markdown' });
     }
   }
 
