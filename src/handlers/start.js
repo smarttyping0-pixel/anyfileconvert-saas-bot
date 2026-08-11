@@ -15,7 +15,7 @@ Convert any file format instantly inside Telegram!
 
 👇 *Choose a conversion task from the menu below:*`;
 
-  const webAppUrl = process.env.WEB_APP_URL || '';
+  const webAppUrl = process.env.WEB_APP_URL || 'https://anyfileconvert-saas-bot.onrender.com';
   const inlineKeyboard = new InlineKeyboard();
 
   if (webAppUrl && webAppUrl.startsWith('https://')) {
