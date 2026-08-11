@@ -108,14 +108,30 @@ bot.callbackQuery('task_imgcompress', async (ctx) => {
   return promptCompressOptions(ctx);
 });
 
+// Dedicated Custom Callbacks
+bot.callbackQuery('resize_custom', async (ctx) => {
+  await ctx.answerCallbackQuery("✍️ Type custom size in chat!").catch(() => {});
+  session.setUserTask(ctx.from.id, 'imgresize', {});
+  await ctx.reply(
+    "✍️ *CUSTOM IMAGE RESIZE*\n\nType your custom dimensions directly in this chat, then send your photo!\n\n• **For Pixels:** Send `1200x800` or `1080x1080`\n• **For Scale:** Send `50%` or `75%`",
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.callbackQuery('compress_custom', async (ctx) => {
+  await ctx.answerCallbackQuery("✍️ Type target limit in chat!").catch(() => {});
+  session.setUserTask(ctx.from.id, 'imgcompress', {});
+  await ctx.reply(
+    "✍️ *CUSTOM PHOTO COMPRESSION*\n\nType your target file size limit directly in this chat, then send your photo!\n\n• **For KB Limit:** Send `150kb` or `300kb`\n• **For MB Limit:** Send `2mb` or `5mb`",
+    { parse_mode: 'Markdown' }
+  );
+});
+
 // Resize Presets
 bot.callbackQuery(/^resize_(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
   const val = ctx.match[1];
-  if (val === 'custom') {
-    session.setUserTask(ctx.from.id, 'imgresize', {});
-    await ctx.reply(`✍️ *Please reply with your custom dimensions:*\n\n• For Pixels: type \`1200x800\`\n• For Scale: type \`50%\``, { parse_mode: 'Markdown' });
-  } else if (val.startsWith('pct_')) {
+  if (val.startsWith('pct_')) {
     const pct = parseInt(val.replace('pct_', ''), 10);
     session.setUserTask(ctx.from.id, 'imgresize', { percentage: pct });
     await ctx.reply(`✅ *Resize Mode Set:* ${pct}% Scale!\n\n📥 *Send your photo now!*`, { parse_mode: 'Markdown' });

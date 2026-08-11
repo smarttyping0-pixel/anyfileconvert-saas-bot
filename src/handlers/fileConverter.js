@@ -94,10 +94,11 @@ async function promptCompressOptions(ctx) {
     .text("100 KB (Job Upload)", "compress_100")
     .text("200 KB (Passport)", "compress_200").row()
     .text("500 KB (Standard Web)", "compress_500")
-    .text("1 MB (HD Web)", "compress_1000");
+    .text("1 MB (HD Web)", "compress_1000").row()
+    .text("✍️ Type Custom Limit", "compress_custom");
 
   await ctx.reply(
-    "📉 *PHOTO FILE SIZE MINIMIZER CONFIGURATION*\n\nSelect your maximum target file size limit below, then send your photo!\n\n*(Default: 200 KB limit)*",
+    "📉 *PHOTO FILE SIZE MINIMIZER CONFIGURATION*\n\nSelect your maximum target file size limit below, or tap **✍️ Type Custom Limit**!\n\n*(Default: 200 KB limit)*",
     { parse_mode: 'Markdown', reply_markup: keyboard }
   );
 }
