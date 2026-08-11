@@ -589,15 +589,39 @@ async function downloadUrlToMp3(videoUrl) {
 }
 
 /**
- * Replace transparent background of image with solid white color
+ * Replace transparent background of image with solid white color (Supports PNG, WEBP, GIF, SVG)
  */
 async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
   const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.png`);
-  await sharp(imagePath)
-    .flatten({ background: fillColor })
-    .png()
-    .toFile(outputFilePath);
-  return outputFilePath;
+  
+  try {
+    const metadata = await sharp(imagePath).metadata();
+    const w = metadata.width || 800;
+    const h = metadata.height || 600;
+
+    const bgCanvas = await sharp({
+      create: {
+        width: w,
+        height: h,
+        channels: 4,
+        background: fillColor
+      }
+    }).png().toBuffer();
+
+    await sharp(bgCanvas)
+      .composite([{ input: imagePath, blend: 'over' }])
+      .png()
+      .toFile(outputFilePath);
+
+    return outputFilePath;
+  } catch (err) {
+    console.error("fillTransparentBackground compositing note, falling back:", err.message);
+    await sharp(imagePath)
+      .flatten({ background: fillColor })
+      .png()
+      .toFile(outputFilePath);
+    return outputFilePath;
+  }
 }
 
 /**
