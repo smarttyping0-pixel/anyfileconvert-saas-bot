@@ -21,7 +21,7 @@
     "mammoth": "^1.8.0",
     "multer": "^1.4.5-lts.1",
     "pdf-lib": "^1.17.1",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^1.1.4",
     "pdf2json": "^3.1.5",
     "play-dl": "^1.9.7",
     "sharp": "^0.33.5"

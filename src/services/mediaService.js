@@ -181,25 +181,45 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
 // -------------------------------------------------------------------
 
 /**
- * Extract Text from PDF file using pdf2json
+ * Extract Text from PDF file using pdf2json + fallback pdf-parse
  */
-function convertPdfToText(pdfPath) {
-  return new Promise((resolve, reject) => {
-    const PDFParser = require('pdf2json');
-    const pdfParser = new PDFParser(null, 1);
+async function convertPdfToText(pdfPath) {
+  // Method A: Try pdf2json
+  try {
+    const text = await new Promise((resolve, reject) => {
+      const PDFParser = require('pdf2json');
+      const pdfParser = new PDFParser(null, 1);
 
-    pdfParser.on('pdfParser_dataError', (errData) => {
-      console.error('PDF Parser Error:', errData.parserError);
-      reject(new Error(errData.parserError || 'Failed to parse PDF text'));
+      pdfParser.on('pdfParser_dataError', (errData) => {
+        reject(new Error(errData.parserError || 'Failed to parse PDF text'));
+      });
+
+      pdfParser.on('pdfParser_dataReady', () => {
+        const rawText = pdfParser.getRawTextContent();
+        resolve(rawText || '');
+      });
+
+      pdfParser.loadPDF(pdfPath);
     });
 
-    pdfParser.on('pdfParser_dataReady', () => {
-      const rawText = pdfParser.getRawTextContent();
-      resolve(rawText || "No readable text found in PDF.");
-    });
+    if (text && text.trim()) return text;
+  } catch (err) {
+    console.error("pdf2json error, attempting pdf-parse fallback:", err.message);
+  }
 
-    pdfParser.loadPDF(pdfPath);
-  });
+  // Method B: Fallback to pdf-parse for corrupted XRef tables & custom PDF headers
+  try {
+    const pdfParse = require('pdf-parse');
+    const dataBuffer = fs.readFileSync(pdfPath);
+    const parsed = await pdfParse(dataBuffer);
+    if (parsed.text && parsed.text.trim()) {
+      return parsed.text;
+    }
+  } catch (err) {
+    console.error("pdf-parse fallback error:", err.message);
+  }
+
+  throw new Error("Password-protected or corrupted PDF. Please upload an unprotected PDF file!");
 }
 
 /**
