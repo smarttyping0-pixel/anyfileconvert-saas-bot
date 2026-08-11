@@ -198,7 +198,7 @@ async function extractTextFromImage(imagePath) {
 }
 
 /**
- * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json + Embedded Image OCR
+ * Extract Text from PDF file using Mozilla PDF.js + pdf-parse + pdf2json + Raw Stream TJ Extractor
  */
 async function convertPdfToText(pdfPath) {
   // Method A: Primary Mozilla PDF.js Engine (Handles all complex, un-XRef'd & custom font PDFs)
@@ -206,16 +206,28 @@ async function convertPdfToText(pdfPath) {
     const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
     const dataBuffer = fs.readFileSync(pdfPath);
     const data = new Uint8Array(dataBuffer);
-    const loadingTask = pdfjsLib.getDocument({ data, disableFontFace: true });
+    const loadingTask = pdfjsLib.getDocument({
+      data,
+      disableFontFace: true,
+      useSystemFonts: true
+    });
     const pdfDocument = await loadingTask.promise;
-    
+
     let fullText = '';
     for (let i = 1; i <= pdfDocument.numPages; i++) {
       const page = await pdfDocument.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join(' ');
+      const textContent = await page.getTextContent({
+        normalizeWhitespace: true,
+        disableCombineTextItems: false
+      });
+
+      const pageText = (textContent.items || [])
+        .map(item => (typeof item.str === 'string' ? item.str : ''))
+        .filter(Boolean)
+        .join(' ');
+
       if (pageText.trim()) {
-        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+        fullText += `--- Page ${i} ---\n${pageText.trim()}\n\n`;
       }
     }
     if (fullText.trim()) return fullText.trim();
@@ -228,8 +240,8 @@ async function convertPdfToText(pdfPath) {
     const pdfParse = require('pdf-parse');
     const dataBuffer = fs.readFileSync(pdfPath);
     const parsed = await pdfParse(dataBuffer);
-    if (parsed.text && parsed.text.trim()) {
-      return parsed.text;
+    if (parsed && parsed.text && parsed.text.trim()) {
+      return parsed.text.trim();
     }
   } catch (err) {
     console.error("pdf-parse fallback error:", err.message);
@@ -253,51 +265,29 @@ async function convertPdfToText(pdfPath) {
       pdfParser.loadPDF(pdfPath);
     });
 
-    if (text && text.trim()) return text;
+    if (text && text.trim()) return text.trim();
   } catch (err) {
     console.error("pdf2json error:", err.message);
   }
 
-  // Method D: Scanned Image PDF - OCR Extraction from embedded page images
+  // Method D: Raw Stream TJ/Tj Operator Extractor (Reads text directly from raw binary PDF stream)
   try {
-    const pdfDoc = await PDFDocument.load(fs.readFileSync(pdfPath), { ignoreEncryption: true });
-    const { createWorker } = require('tesseract.js');
-    let ocrText = '';
-
-    for (let i = 0; i < pdfDoc.getPageCount(); i++) {
-      const page = pdfDoc.getPage(i);
-      const { node } = page;
-      const resources = node.Resources ? node.Resources() : null;
-      if (!resources) continue;
-      const xObjects = resources.get(PDFName.of('XObject'));
-      if (!xObjects) continue;
-
-      for (const key of xObjects.keys()) {
-        const xObject = xObjects.get(key);
-        if (xObject && xObject.get && xObject.get(PDFName.of('Subtype')) === PDFName.of('Image')) {
-          try {
-            const imgBuffer = Buffer.from(xObject.contents);
-            if (imgBuffer && imgBuffer.length > 500) {
-              const worker = await createWorker('eng');
-              const ret = await worker.recognize(imgBuffer);
-              await worker.terminate();
-              if (ret.data && ret.data.text && ret.data.text.trim()) {
-                ocrText += `--- Scanned Page ${i + 1} (OCR) ---\n${ret.data.text.trim()}\n\n`;
-              }
-            }
-          } catch (imgErr) {
-            console.error("OCR Image Stream parse error:", imgErr.message);
-          }
-        }
+    const rawBuffer = fs.readFileSync(pdfPath).toString('binary');
+    const matches = rawBuffer.match(/\(([^()]+)\)\s*TJ|\(([^()]+)\)\s*Tj/g);
+    if (matches && matches.length > 0) {
+      const extractedStrings = matches
+        .map(m => m.replace(/[()]/g, '').replace(/\s*(TJ|Tj)/, ''))
+        .filter(str => str.length > 2 && /[a-zA-Z0-9]/.test(str))
+        .join(' ');
+      if (extractedStrings.trim().length > 10) {
+        return extractedStrings.trim();
       }
     }
-
-    if (ocrText.trim()) return ocrText.trim();
-  } catch (ocrErr) {
-    console.error("Scanned PDF OCR error:", ocrErr.message);
+  } catch (rawErr) {
+    console.error("Raw stream extraction error:", rawErr.message);
   }
 
-  throw new Error("Unable to extract text from this PDF file. It may be password-protected or heavily encrypted. Please upload an unprotected PDF file!");
+  throw new Error("Unable to extract text from this PDF file. It may be password-protected, encrypted, or a scanned image PDF (without digital text). Please upload an unprotected text PDF file!");
 }
 
 /**
