@@ -220,7 +220,7 @@ async function convertPdfToText(pdfPath) {
     console.error("pdf-parse fallback error:", err.message);
   }
 
-  throw new Error("Password-protected or corrupted PDF. Please upload an unprotected PDF file!");
+  throw new Error("Unable to extract text from this PDF. It may be password-protected, encrypted, or a scanned image PDF (without a digital text layer). Please send an unprotected text PDF file!");
 }
 
 /**
