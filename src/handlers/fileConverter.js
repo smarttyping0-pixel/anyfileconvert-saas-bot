@@ -173,13 +173,22 @@ async function handleIncomingFile(ctx) {
         parse_mode: 'Markdown'
       });
     }
-    // 6. Task: DOCX to PDF
+    // 6. Task: DOCX & TXT to PDF
     else if (activeTask === 'docx2pdf') {
-      const docxText = await mediaService.convertDocxToText(localInputPath);
+      let docxText = '';
+      if (fileExt === '.docx') {
+        docxText = await mediaService.convertDocxToText(localInputPath);
+      } else {
+        try {
+          docxText = fs.readFileSync(localInputPath, 'utf8');
+        } catch (e) {
+          docxText = await mediaService.convertDocxToText(localInputPath);
+        }
+      }
       outputPath = await mediaService.convertTextToPdf(docxText);
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: "📄 *Converted Word DOCX to PDF!*",
+        caption: "📄 *Converted Text/DOCX to PDF!*",
         parse_mode: 'Markdown'
       });
     }

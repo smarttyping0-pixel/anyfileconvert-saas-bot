@@ -310,11 +310,26 @@ async function convertPdfToText(pdfPath) {
 }
 
 /**
- * Convert DOCX file to TXT
+ * Convert DOCX or Plain Text file to TXT
  */
 async function convertDocxToText(docxPath) {
-  const result = await mammoth.extractRawText({ path: docxPath });
-  return result.value || "No readable text found in Word document.";
+  try {
+    const result = await mammoth.extractRawText({ path: docxPath });
+    if (result && result.value && result.value.trim()) {
+      return result.value;
+    }
+  } catch (err) {
+    console.error("mammoth docx extract note, falling back to plain text read:", err.message);
+  }
+
+  try {
+    const textContent = fs.readFileSync(docxPath, 'utf8');
+    if (textContent && textContent.trim()) return textContent;
+  } catch (e) {
+    console.error("fs.readFileSync error:", e.message);
+  }
+
+  return "No readable text found in document.";
 }
 
 /**

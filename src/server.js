@@ -51,8 +51,18 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
       outputPath = path.join(mediaService.TEMP_DIR, `extracted_${Date.now()}.txt`);
       fs.writeFileSync(outputPath, text, 'utf8');
     } else if (task === 'docx2pdf') {
-      const docxText = await mediaService.convertDocxToText(inputFilePath);
-      outputPath = await mediaService.convertTextToPdf(docxText);
+      const ext = path.extname(req.file.originalname || '').toLowerCase();
+      let docText = '';
+      if (ext === '.docx') {
+        docText = await mediaService.convertDocxToText(inputFilePath);
+      } else {
+        try {
+          docText = fs.readFileSync(inputFilePath, 'utf8');
+        } catch (e) {
+          docText = await mediaService.convertDocxToText(inputFilePath);
+        }
+      }
+      outputPath = await mediaService.convertTextToPdf(docText);
     } else if (task === 'imgconv') {
       outputPath = await mediaService.convertImageFormat(inputFilePath, 'png');
     } else {
