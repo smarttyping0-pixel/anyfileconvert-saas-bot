@@ -4,7 +4,7 @@ module.exports = {
   botToken: process.env.BOT_TOKEN || '',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
-  removeBgApiKey: process.env.REMOVE_BG_API_KEY || '',
+  removeBgApiKey: process.env.REMOVE_BG_API_KEY || 'MSMaqq9aDmjr1A3SeyyKL9xF',
   paymentProviderToken: process.env.PAYMENT_PROVIDER_TOKEN || '',
   adminIds: (process.env.ADMIN_IDS || '').split(',').map(id => id.trim()),
   freeDailyCredits: parseInt(process.env.FREE_DAILY_CREDITS || '10', 10),

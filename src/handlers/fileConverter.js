@@ -199,7 +199,8 @@ async function handleIncomingFile(ctx) {
     }
     // 4. Task: Remove Background
     else if (activeTask === 'bgrem') {
-      outputPath = await mediaService.removeImageBackground(localInputPath, process.env.REMOVE_BG_API_KEY || '');
+      const apiKey = config.removeBgApiKey || process.env.REMOVE_BG_API_KEY || 'MSMaqq9aDmjr1A3SeyyKL9xF';
+      outputPath = await mediaService.removeImageBackground(localInputPath, apiKey);
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
         caption: "✂️ *Background Removed Image (PNG)!*",
