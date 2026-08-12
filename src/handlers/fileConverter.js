@@ -115,7 +115,8 @@ async function promptCompressOptions(ctx) {
 async function handleIncomingFile(ctx) {
   const userId = ctx.from.id;
   let activeTask = session.getUserTask(userId);
-  session.clearUserTask(userId); // Clear user task immediately to prevent restart loops
+  let userOptions = session.getUserOptions(userId);
+  session.clearUserTask(userId); // Clear user task after capturing options
 
   // Only fallback if user has not explicitly selected a task from the menu
   if (!activeTask || !['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv', 'img2pdf'].includes(activeTask)) {
@@ -264,7 +265,6 @@ async function handleIncomingFile(ctx) {
     }
     // 10. Task: Resize Image (Pixels & Percentage)
     else if (activeTask === 'imgresize') {
-      let userOptions = session.getUserOptions(userId);
       const caption = (ctx.message.caption || '').trim();
 
       if (caption) {
@@ -291,7 +291,6 @@ async function handleIncomingFile(ctx) {
     }
     // 11. Task: Compress / Minimize Photo Size (KB/MB)
     else if (activeTask === 'imgcompress') {
-      const userOptions = session.getUserOptions(userId);
       const targetKb = userOptions.targetKb || 200;
 
       outputPath = await mediaService.compressImageToTargetSize(localInputPath, targetKb);
