@@ -225,8 +225,8 @@ bot.hears("🔗 URL to MP3", async (ctx) => {
 bot.hears("🎥 Video to MP3", (ctx) => selectTask(ctx, 'v2mp3', '🎥 Video to MP3 Audio'));
 bot.hears("🎬 Video to GIF", (ctx) => selectTask(ctx, 'v2gif', '🎬 Video to Animated GIF'));
 bot.hears("📄 Image to PDF", (ctx) => selectTask(ctx, 'img2pdf', '📄 Image to PDF Document'));
-bot.hears("✂️ Remove BG", (ctx) => selectTask(ctx, 'bgrem', '✂️ Remove Image Background'));
-bot.hears("⚪ Fill Transparent BG", (ctx) => selectTask(ctx, 'fillbg', '⚪ Fill Transparent Background with White'));
+bot.hears(["✂️ Make BG Transparent", "✂️ Remove BG"], (ctx) => selectTask(ctx, 'bgrem', '✂️ Make BG Transparent (PNG format)'));
+bot.hears(["⚪ Fill BG with White", "⚪ Fill Transparent BG"], (ctx) => selectTask(ctx, 'fillbg', '⚪ Fill BG with White Color'));
 bot.hears("📐 Resize Image", (ctx) => {
   const { promptResizeOptions } = require('./handlers/fileConverter');
   return promptResizeOptions(ctx);
