@@ -121,11 +121,10 @@ async function handleIncomingFile(ctx) {
   if (!activeTask) {
     if (ctx.message.photo || (ctx.message.document && (ctx.message.document.mime_type || '').startsWith('image/'))) {
       const keyboard = new InlineKeyboard()
-        .text("⚪ Fill Transparent BG", "task_fillbg")
-        .text("✂️ Remove BG", "task_bgrem").row()
-        .text("📐 Resize Image", "task_imgresize")
-        .text("📉 Compress Photo", "task_imgcompress").row()
-        .text("🖼️ Convert PNG/JPG", "task_imgconv")
+        .text("✂️ Make BG Transparent", "task_bgrem")
+        .text("📐 Resize Image", "task_imgresize").row()
+        .text("📉 Compress Photo", "task_imgcompress")
+        .text("🖼️ Convert PNG/JPG", "task_imgconv").row()
         .text("📄 Image to PDF", "task_img2pdf");
 
       return ctx.reply(
@@ -260,20 +259,7 @@ async function handleIncomingFile(ctx) {
         parse_mode: 'Markdown'
       });
     }
-    // 9. Task: Fill Transparent Background with White
-    else if (activeTask === 'fillbg') {
-      outputPath = await mediaService.fillTransparentBackground(localInputPath, '#ffffff');
-      db.deductCredits(userId, 1);
-      await ctx.replyWithPhoto(new InputFile(outputPath), {
-        caption: "⚪ *Replaced Transparent Background with Solid White (PNG Image)!*",
-        parse_mode: 'Markdown'
-      }).catch(async () => {
-        await ctx.replyWithDocument(new InputFile(outputPath), {
-          caption: "⚪ *Replaced Transparent Background with Solid White (PNG Image)!*",
-          parse_mode: 'Markdown'
-        });
-      });
-    }
+
     // 10. Task: Resize Image (Pixels & Percentage)
     else if (activeTask === 'imgresize') {
       const caption = (ctx.message.caption || '').trim();

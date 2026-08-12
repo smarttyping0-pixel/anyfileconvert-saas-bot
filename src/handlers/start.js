@@ -28,25 +28,24 @@ Convert any file format instantly inside Telegram!
     .text("🎬 Video to GIF", "task_v2gif")
     .text("📄 Image to PDF", "task_img2pdf").row()
     .text("✂️ Make BG Transparent", "task_bgrem")
-    .text("⚪ Fill BG with White", "task_fillbg").row()
-    .text("📐 Resize Image", "task_imgresize")
-    .text("📉 Compress Photo", "task_imgcompress").row()
-    .text("📝 PDF to Text", "task_pdf2txt")
-    .text("📘 DOCX to PDF", "task_docx2pdf").row()
-    .text("🖼️ Convert PNG/JPG", "task_imgconv")
-    .text("🎁 Daily Bonus", "cmd_daily").row()
-    .text("👥 Refer & Earn", "cmd_ref")
-    .text("⭐ Buy Credits", "cmd_upgrade").row()
+    .text("📐 Resize Image", "task_imgresize").row()
+    .text("📉 Compress Photo", "task_imgcompress")
+    .text("📝 PDF to Text", "task_pdf2txt").row()
+    .text("📘 DOCX to PDF", "task_docx2pdf")
+    .text("🖼️ Convert PNG/JPG", "task_imgconv").row()
+    .text("🎁 Daily Bonus", "cmd_daily")
+    .text("👥 Refer & Earn", "cmd_ref").row()
+    .text("⭐ Buy Credits", "cmd_upgrade")
     .text("👤 My Account", "cmd_profile");
 
   const bottomChatKeyboard = new Keyboard()
     .text("🔗 URL to MP3").text("🎥 Video to MP3").row()
     .text("📄 Image to PDF").text("✂️ Make BG Transparent").row()
-    .text("⚪ Fill BG with White").text("📐 Resize Image").row()
-    .text("📉 Compress Photo").text("📝 PDF to Text").row()
-    .text("📘 DOCX to PDF").text("🖼️ Convert PNG/JPG").row()
-    .text("🎁 Daily Bonus").text("👥 Refer & Earn").row()
-    .text("⭐ Buy Credits").text("👤 My Account").resized();
+    .text("📐 Resize Image").text("📉 Compress Photo").row()
+    .text("📝 PDF to Text").text("📘 DOCX to PDF").row()
+    .text("🖼️ Convert PNG/JPG").text("🎁 Daily Bonus").row()
+    .text("👥 Refer & Earn").text("⭐ Buy Credits").row()
+    .text("👤 My Account").resized();
 
   await ctx.reply(welcomeText, {
     parse_mode: 'Markdown',
