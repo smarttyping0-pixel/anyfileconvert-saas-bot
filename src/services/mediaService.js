@@ -600,10 +600,26 @@ async function downloadUrlToMp3(videoUrl) {
  */
 async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
   const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.jpg`);
+  let targetPath = imagePath;
+  let tempRemovedPath = null;
 
   try {
-    // Fast, lightweight background flattening onto solid fillColor (Instant 50ms, <15MB RAM)
-    await sharp(imagePath)
+    const metadata = await sharp(imagePath).metadata();
+
+    // If image is a standard photo (JPEG/no alpha) and remove.bg API key is set, isolate subject first
+    if (!metadata.hasAlpha && process.env.REMOVE_BG_API_KEY) {
+      try {
+        tempRemovedPath = await removeImageBackground(imagePath, process.env.REMOVE_BG_API_KEY);
+        if (tempRemovedPath && fs.existsSync(tempRemovedPath)) {
+          targetPath = tempRemovedPath;
+        }
+      } catch (e) {
+        console.error("BG Removal pre-pass note:", e.message);
+      }
+    }
+
+    // Fast, lightweight background flattening onto solid fillColor
+    await sharp(targetPath)
       .flatten({ background: fillColor })
       .jpeg({ quality: 98 })
       .toFile(outputFilePath);
@@ -616,6 +632,8 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
       .jpeg({ quality: 95 })
       .toFile(outputFilePath);
     return outputFilePath;
+  } finally {
+    if (tempRemovedPath) cleanupFile(tempRemovedPath);
   }
 }
 
