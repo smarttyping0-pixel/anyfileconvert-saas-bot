@@ -30,19 +30,31 @@ if (!fs.existsSync(TEMP_DIR)) {
  */
 function convertMediaToAudio(inputFilePath, targetFormat = 'mp3') {
   return new Promise((resolve, reject) => {
-    const outputFilePath = path.join(TEMP_DIR, `audio_${Date.now()}.${targetFormat}`);
-    const normalizedInput = path.resolve(inputFilePath).replace(/\\/g, '/');
-    const normalizedOutput = path.resolve(outputFilePath).replace(/\\/g, '/');
+    if (!fs.existsSync(TEMP_DIR)) {
+      fs.mkdirSync(TEMP_DIR, { recursive: true });
+    }
 
-    ffmpeg(normalizedInput)
-      .noVideo()
-      .toFormat(targetFormat)
-      .on('end', () => resolve(normalizedOutput))
+    const outputFilePath = path.join(TEMP_DIR, `audio_${Date.now()}.${targetFormat}`);
+    const resolvedInput = path.resolve(inputFilePath);
+    const resolvedOutput = path.resolve(outputFilePath);
+
+    let command = ffmpeg(resolvedInput).noVideo();
+
+    if (targetFormat === 'mp3') {
+      command = command.audioCodec('libmp3lame').audioBitrate('192k');
+    } else if (targetFormat === 'aac') {
+      command = command.audioCodec('aac');
+    } else {
+      command = command.toFormat(targetFormat);
+    }
+
+    command
+      .on('end', () => resolve(resolvedOutput))
       .on('error', (err) => {
         console.error(`FFmpeg Audio Error (${targetFormat}):`, err.message);
         reject(err);
       })
-      .save(normalizedOutput);
+      .save(resolvedOutput);
   });
 }
 
@@ -51,23 +63,29 @@ function convertMediaToAudio(inputFilePath, targetFormat = 'mp3') {
  */
 function convertVideoFormat(inputFilePath, targetFormat = 'mp4') {
   return new Promise((resolve, reject) => {
-    const outputFilePath = path.join(TEMP_DIR, `video_${Date.now()}.${targetFormat}`);
-    const normalizedInput = path.resolve(inputFilePath).replace(/\\/g, '/');
-    const normalizedOutput = path.resolve(outputFilePath).replace(/\\/g, '/');
+    if (!fs.existsSync(TEMP_DIR)) {
+      fs.mkdirSync(TEMP_DIR, { recursive: true });
+    }
 
-    let command = ffmpeg(normalizedInput).toFormat(targetFormat);
+    const outputFilePath = path.join(TEMP_DIR, `video_${Date.now()}.${targetFormat}`);
+    const resolvedInput = path.resolve(inputFilePath);
+    const resolvedOutput = path.resolve(outputFilePath);
+
+    let command = ffmpeg(resolvedInput);
 
     if (targetFormat === 'gif') {
-      command = command.fps(10).size('320x?');
+      command = command.fps(10).size('320x?').toFormat('gif');
+    } else {
+      command = command.toFormat(targetFormat);
     }
 
     command
-      .on('end', () => resolve(normalizedOutput))
+      .on('end', () => resolve(resolvedOutput))
       .on('error', (err) => {
-        console.error(`FFmpeg Video Error (${targetFormat}):`, err);
+        console.error(`FFmpeg Video Error (${targetFormat}):`, err.message || err);
         reject(err);
       })
-      .save(normalizedOutput);
+      .save(resolvedOutput);
   });
 }
 
