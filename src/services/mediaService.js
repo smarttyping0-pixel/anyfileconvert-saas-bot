@@ -618,27 +618,50 @@ async function downloadUrlToMp3(videoUrl) {
  */
 async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
   const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.jpg`);
-  let targetPath = imagePath;
-  let tempRemovedPath = null;
 
   try {
     const metadata = await sharp(imagePath).metadata();
 
-    // If image is a standard photo (JPEG/no alpha) and remove.bg API key is set, isolate subject first
-    if (!metadata.hasAlpha && process.env.REMOVE_BG_API_KEY) {
-      try {
-        tempRemovedPath = await removeImageBackground(imagePath, process.env.REMOVE_BG_API_KEY);
-        if (tempRemovedPath && fs.existsSync(tempRemovedPath)) {
-          targetPath = tempRemovedPath;
-        }
-      } catch (e) {
-        console.error("BG Removal pre-pass note:", e.message);
+    // If image has alpha (transparent PNG/WEBP), flatten directly onto solid white #ffffff
+    if (metadata.hasAlpha) {
+      await sharp(imagePath)
+        .flatten({ background: fillColor })
+        .jpeg({ quality: 98 })
+        .toFile(outputFilePath);
+      return outputFilePath;
+    }
+
+    // Smart Threshold for JPEG photos/signatures/paper scans/graphics:
+    // Convert near-white/grey/checkerboard background pixels to pure solid white #ffffff
+    const { data, info } = await sharp(imagePath).raw().toBuffer({ resolveWithObject: true });
+    const pixelCount = info.width * info.height;
+    const channels = info.channels;
+    const outBuffer = Buffer.alloc(pixelCount * 4);
+
+    for (let i = 0; i < pixelCount; i++) {
+      const srcIdx = i * channels;
+      const dstIdx = i * 4;
+
+      const r = data[srcIdx];
+      const g = data[srcIdx + 1];
+      const b = data[srcIdx + 2];
+      const a = channels === 4 ? data[srcIdx + 3] : 255;
+
+      // Force transparent pixels or light/grey background pixels to pure white #ffffff
+      if (a < 128 || (r > 200 && g > 200 && b > 200)) {
+        outBuffer[dstIdx] = 255;
+        outBuffer[dstIdx + 1] = 255;
+        outBuffer[dstIdx + 2] = 255;
+        outBuffer[dstIdx + 3] = 255;
+      } else {
+        outBuffer[dstIdx] = r;
+        outBuffer[dstIdx + 1] = g;
+        outBuffer[dstIdx + 2] = b;
+        outBuffer[dstIdx + 3] = 255;
       }
     }
 
-    // Fast, lightweight background flattening onto solid fillColor
-    await sharp(targetPath)
-      .flatten({ background: fillColor })
+    await sharp(outBuffer, { raw: { width: info.width, height: info.height, channels: 4 } })
       .jpeg({ quality: 98 })
       .toFile(outputFilePath);
 
@@ -650,8 +673,6 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
       .jpeg({ quality: 95 })
       .toFile(outputFilePath);
     return outputFilePath;
-  } finally {
-    if (tempRemovedPath) cleanupFile(tempRemovedPath);
   }
 }
 
