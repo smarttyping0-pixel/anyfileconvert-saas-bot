@@ -291,6 +291,18 @@ async function handleIncomingFile(ctx) {
     }
     // 11. Task: Compress / Minimize Photo Size (KB/MB)
     else if (activeTask === 'imgcompress') {
+      const caption = (ctx.message.caption || '').trim();
+
+      if (caption) {
+        const match = caption.match(/(\d+)\s*(kb|mb)?/i);
+        if (match) {
+          let kb = parseInt(match[1], 10);
+          const unit = (match[2] || 'kb').toLowerCase();
+          if (unit === 'mb') kb = kb * 1024;
+          if (kb > 0) userOptions.targetKb = kb;
+        }
+      }
+
       const targetKb = userOptions.targetKb || 200;
 
       outputPath = await mediaService.compressImageToTargetSize(localInputPath, targetKb);
@@ -298,7 +310,7 @@ async function handleIncomingFile(ctx) {
       const sizeKb = Math.round(stats.size / 1024);
       db.deductCredits(userId, 1);
       await ctx.replyWithDocument(new InputFile(outputPath), {
-        caption: `📉 *Compressed Photo File Size (${sizeKb} KB / Target: ${targetKb} KB)!*`,
+        caption: `📉 *Compressed Photo File Size (${sizeKb} KB / Target Limit: ${targetKb} KB)!*`,
         parse_mode: 'Markdown'
       });
     }
