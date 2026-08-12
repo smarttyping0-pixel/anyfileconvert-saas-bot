@@ -116,12 +116,22 @@ async function handleIncomingFile(ctx) {
   const userId = ctx.from.id;
   let activeTask = session.getUserTask(userId);
   let userOptions = session.getUserOptions(userId);
-  session.clearUserTask(userId); // Clear user task after capturing options
 
-  // Only fallback if user has not explicitly selected a task from the menu
-  if (!activeTask || !['fillbg', 'bgrem', 'imgconv', 'imgresize', 'imgcompress', 'v2gif', 'pdf2txt', 'docx2pdf', 'v2mp3', 'audconv', 'img2pdf'].includes(activeTask)) {
-    if (ctx.message.photo) {
-      activeTask = 'imgconv'; // Default photo upload to PNG/JPG format conversion instead of forcing PDF
+  // If user has not selected an active task, prompt them to choose an action
+  if (!activeTask) {
+    if (ctx.message.photo || (ctx.message.document && (ctx.message.document.mime_type || '').startsWith('image/'))) {
+      const keyboard = new InlineKeyboard()
+        .text("⚪ Fill Transparent BG", "task_fillbg")
+        .text("✂️ Remove BG", "task_bgrem").row()
+        .text("📐 Resize Image", "task_imgresize")
+        .text("📉 Compress Photo", "task_imgcompress").row()
+        .text("🖼️ Convert PNG/JPG", "task_imgconv")
+        .text("📄 Image to PDF", "task_img2pdf");
+
+      return ctx.reply(
+        "🖼️ *Choose an action for your uploaded image:*",
+        { parse_mode: 'Markdown', reply_markup: keyboard }
+      );
     } else if (ctx.message.video || ctx.message.video_note) {
       activeTask = 'v2mp3';
     } else if (ctx.message.audio || ctx.message.voice) {
