@@ -599,7 +599,7 @@ async function downloadUrlToMp3(videoUrl) {
  * Replace transparent background of image with solid white color (Supports PNG, WEBP, JPEG & Photo Subjects)
  */
 async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
-  const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.png`);
+  const outputFilePath = path.join(TEMP_DIR, `whitebg_${Date.now()}.jpg`);
   let targetPath = imagePath;
   let tempRemovedPath = null;
 
@@ -612,29 +612,20 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
       try {
         tempRemovedPath = await removeImageBackground(imagePath, process.env.REMOVE_BG_API_KEY || '');
         if (tempRemovedPath && fs.existsSync(tempRemovedPath)) {
-          targetPath = tempRemovedPath;
+          const removedMeta = await sharp(tempRemovedPath).metadata();
+          if (removedMeta.hasAlpha) {
+            targetPath = tempRemovedPath;
+          }
         }
       } catch (e) {
         console.error("BG Removal pre-pass note:", e.message);
       }
     }
 
-    const targetMeta = await sharp(targetPath).metadata();
-    const w = targetMeta.width || 800;
-    const h = targetMeta.height || 600;
-
-    const bgCanvas = await sharp({
-      create: {
-        width: w,
-        height: h,
-        channels: 4,
-        background: fillColor
-      }
-    }).png().toBuffer();
-
-    await sharp(bgCanvas)
-      .composite([{ input: targetPath, blend: 'over' }])
-      .png()
+    // Flatten image onto solid background color and save as 3-channel JPEG (strips alpha channel)
+    await sharp(targetPath)
+      .flatten({ background: fillColor })
+      .jpeg({ quality: 98 })
       .toFile(outputFilePath);
 
     return outputFilePath;
@@ -642,7 +633,7 @@ async function fillTransparentBackground(imagePath, fillColor = '#ffffff') {
     console.error("fillTransparentBackground error, falling back:", err.message);
     await sharp(imagePath)
       .flatten({ background: fillColor })
-      .png()
+      .jpeg({ quality: 95 })
       .toFile(outputFilePath);
     return outputFilePath;
   } finally {
