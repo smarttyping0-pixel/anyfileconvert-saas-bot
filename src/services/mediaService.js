@@ -184,12 +184,12 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     }
   }
 
-  // Option B: 100% Free Local AI Background Removal with 12s Timeout Guard
+  // Option B: 100% Free Lightweight 4MB u2netp Mobile AI Engine
   try {
     const { removeBackground } = require('@imgly/background-removal-node');
-    const bgPromise = removeBackground(imagePath);
+    const bgPromise = removeBackground(imagePath, { model: 'small' });
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Local AI processing timeout (RAM limit). Add REMOVE_BG_API_KEY in .env for instant cloud BG removal!")), 12000)
+      setTimeout(() => reject(new Error("AI processing timeout")), 15000)
     );
     
     const blob = await Promise.race([bgPromise, timeoutPromise]);
