@@ -449,120 +449,24 @@ async function getInstagramVideoUrl(instagramUrl) {
 /**
  * Download Video from URL (YouTube, Instagram Reels/Posts, Web video, Direct link) and convert to MP3
  */
+/**
+ * Download Video from URL (YouTube, Instagram, TikTok, Web video) to MP3 using yt-dlp
+ */
 async function downloadUrlToMp3(videoUrl) {
   const outputFilePath = path.join(TEMP_DIR, `url_${Date.now()}.mp3`);
-  const normalizedOutput = path.resolve(outputFilePath).replace(/\\/g, '/');
+  const ytdlpHelper = require('./ytdlpHelper');
 
-  // Case 1: Instagram Reel or Post URL
-  if (videoUrl.includes('instagram.com')) {
-    const directVideoUrl = await getInstagramVideoUrl(videoUrl);
-    if (directVideoUrl) {
-      const tempPath = path.join(TEMP_DIR, `ig_${Date.now()}.mp4`);
-      try {
-        const response = await axios({
-          method: 'GET',
-          url: directVideoUrl,
-          responseType: 'stream',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        });
+  try {
+    await ytdlpHelper.downloadAudioWithYtDlp(videoUrl, outputFilePath);
 
-        const contentType = (response.headers['content-type'] || '').toLowerCase();
-        if (contentType.includes('text/html') || contentType.includes('application/json')) {
-          throw new Error("Private or protected Instagram Reel. Please send video file directly!");
-        }
-
-        const writer = fs.createWriteStream(tempPath);
-        response.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-          writer.on('finish', resolve);
-          writer.on('error', reject);
-        });
-
-        const stats = fs.statSync(tempPath);
-        if (stats.size < 10000) { // Less than 10KB is an HTML error page
-          cleanupFile(tempPath);
-          throw new Error("Protected Instagram post. Please send video file directly!");
-        }
-
-        const audioPath = await convertMediaToAudio(tempPath, 'mp3');
-        cleanupFile(tempPath);
-        return audioPath;
-      } catch (err) {
-        cleanupFile(tempPath);
-        throw new Error(err.message || "Unable to download Instagram video from link.");
-      }
+    if (fs.existsSync(outputFilePath) && fs.statSync(outputFilePath).size > 1000) {
+      return outputFilePath;
+    } else {
+      throw new Error("Unable to extract audio from URL. Please send video file directly!");
     }
-  }
+  } catch (ytErr) {
+    console.error("yt-dlp extraction note, trying direct HTTP stream fallback:", ytErr.message);
 
-  const ytdl = require('@distube/ytdl-core');
-
-  // Case 2: YouTube URL
-  if (ytdl.validateURL(videoUrl)) {
-    try {
-      let agent = undefined;
-      const cookiePath = path.join(__dirname, '../../youtube_cookies.txt');
-      if (fs.existsSync(cookiePath)) {
-        try {
-          const rawCookies = fs.readFileSync(cookiePath, 'utf8');
-          const cookiesJson = rawCookies
-            .split('\n')
-            .filter(line => line.trim() && !line.startsWith('#'))
-            .map(line => {
-              const parts = line.split('\t');
-              if (parts.length >= 7) {
-                return { name: parts[5].trim(), value: parts[6].trim() };
-              }
-              return null;
-            })
-            .filter(Boolean);
-
-          if (cookiesJson.length > 0) {
-            agent = ytdl.createAgent(cookiesJson);
-          }
-        } catch (e) {
-          console.error("Error creating ytdl agent from cookies:", e.message);
-        }
-      }
-
-      const infoOptions = agent ? { agent } : {
-        requestOptions: {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9'
-          }
-        }
-      };
-
-      const info = await ytdl.getInfo(videoUrl, infoOptions);
-      const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-      const selectedFormat = audioFormats[0] || info.formats[0];
-
-      if (selectedFormat && selectedFormat.url) {
-        return new Promise((resolve, reject) => {
-          ffmpeg(selectedFormat.url)
-            .inputOptions([
-              '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n'
-            ])
-            .noVideo()
-            .toFormat('mp3')
-            .audioBitrate('192k')
-            .on('end', () => resolve(normalizedOutput))
-            .on('error', (err) => {
-              reject(new Error("YouTube blocks automated cloud servers. Please send Instagram Reels, MP4 video links, or upload your video file directly to convert to MP3!"));
-            })
-            .save(normalizedOutput);
-        });
-      }
-    } catch (err) {
-      throw new Error("YouTube anti-bot block: YouTube blocks cloud server IPs. Please send Instagram Reels, MP4 links, or upload your video file directly!");
-    }
-  }
-
-  // Case 3: Direct Video Link / Web video URL
-  return new Promise(async (resolve, reject) => {
     const tempVideoPath = path.join(TEMP_DIR, `web_${Date.now()}.tmp`);
     try {
       const response = await axios({
@@ -570,47 +474,26 @@ async function downloadUrlToMp3(videoUrl) {
         url: videoUrl,
         responseType: 'stream',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
 
-      const contentType = (response.headers['content-type'] || '').toLowerCase();
-      if (contentType.includes('text/html') || contentType.includes('application/json')) {
-        return reject(new Error("URL returned an HTML web page instead of a video file. Please send direct video file!"));
-      }
-
-      const normalizedTemp = path.resolve(tempVideoPath).replace(/\\/g, '/');
-      const writer = fs.createWriteStream(normalizedTemp);
-
+      const writer = fs.createWriteStream(tempVideoPath);
       response.data.pipe(writer);
 
-      writer.on('finish', () => {
-        const stats = fs.statSync(normalizedTemp);
-        if (stats.size < 10000) {
-          cleanupFile(normalizedTemp);
-          return reject(new Error("File too small or invalid video stream. Please upload video file directly!"));
-        }
-
-        convertMediaToAudio(normalizedTemp, 'mp3')
-          .then((res) => {
-            cleanupFile(normalizedTemp);
-            resolve(res);
-          })
-          .catch((err) => {
-            cleanupFile(normalizedTemp);
-            reject(new Error("Invalid video stream at URL. Please upload video file directly!"));
-          });
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
       });
 
-      writer.on('error', (err) => {
-        cleanupFile(normalizedTemp);
-        reject(err);
-      });
+      const audioPath = await convertMediaToAudio(tempVideoPath, 'mp3');
+      cleanupFile(tempVideoPath);
+      return audioPath;
     } catch (err) {
       cleanupFile(tempVideoPath);
-      reject(new Error(`Inaccessible video link: ${err.message}`));
+      throw new Error(`Inaccessible or protected video link: ${err.message}`);
     }
-  });
+  }
 }
 
 /**
