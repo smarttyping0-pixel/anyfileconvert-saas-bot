@@ -1,12 +1,13 @@
 const { Bot } = require('grammy');
 const config = require('./config');
-const { handleStart, handleProfile } = require('./handlers/start');
+const { handleStart, handleProfile, handleLanguagePrompt } = require('./handlers/start');
 const { selectTask, handleIncomingFile } = require('./handlers/fileConverter');
 const { handleUpgrade, sendInvoice, handleSuccessfulPayment } = require('./handlers/payment');
 const { handleReferral, handleDailyBonus, handleFeedback } = require('./handlers/userFeatures');
 const { handleBroadcast, handleStats } = require('./handlers/admin');
 const db = require('./services/database');
 const session = require('./services/session');
+const i18n = require('./services/i18n');
 
 if (!config.botToken) {
   console.error("❌ BOT_TOKEN is missing in environment variables! Please check your .env file.");
@@ -44,6 +45,8 @@ bot.command('ref', handleReferral);
 bot.command('referral', handleReferral);
 bot.command('daily', handleDailyBonus);
 bot.command('feedback', handleFeedback);
+bot.command('language', handleLanguagePrompt);
+bot.command('lang', handleLanguagePrompt);
 bot.command('broadcast', handleBroadcast);
 bot.command('stats', handleStats);
 
@@ -241,6 +244,30 @@ bot.hears("🎁 Daily Bonus", handleDailyBonus);
 bot.hears("👥 Refer & Earn", handleReferral);
 bot.hears("⭐ Buy Credits", handleUpgrade);
 bot.hears("👤 My Account", handleProfile);
+bot.hears(["🌐 Language", "🌐 Change Language"], handleLanguagePrompt);
+
+// Language Callback Query Handler
+bot.callbackQuery(/^lang_(.+)$/, async (ctx) => {
+  const langCode = ctx.match[1];
+  i18n.setUserLanguage(ctx.from.id, langCode);
+  const langNames = {
+    en: "English 🇺🇸",
+    es: "Español 🇪🇸",
+    hi: "हिन्दी 🇮🇳",
+    ar: "العربية 🇸🇦",
+    ru: "Русский 🇷🇺",
+    pt: "Português 🇧🇷",
+    fr: "Français 🇫🇷"
+  };
+  const selectedName = langNames[langCode] || langCode;
+  await ctx.answerCallbackQuery(`✅ Language set to ${selectedName}!`).catch(() => {});
+  await ctx.reply(
+    `🌐 *Language Updated:* Your language is now set to **${selectedName}**!\n\n` +
+    `All bot messages will now be sent in your preferred language.`,
+    { parse_mode: 'Markdown' }
+  );
+  return handleStart(ctx);
+});
 
 // -------------------------------------------------------------
 // MEDIA & FILE UPLOAD LISTENERS (Routed by Session Selection)

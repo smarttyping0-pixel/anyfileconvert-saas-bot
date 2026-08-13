@@ -45,12 +45,29 @@ Convert any file format instantly inside Telegram!
     .text("📝 PDF to Text").text("📘 DOCX to PDF").row()
     .text("🖼️ Convert PNG/JPG").text("🎁 Daily Bonus").row()
     .text("👥 Refer & Earn").text("⭐ Buy Credits").row()
-    .text("👤 My Account").resized();
+    .text("👤 My Account").text("🌐 Language").resized();
 
   await ctx.reply(welcomeText, {
     parse_mode: 'Markdown',
     reply_markup: bottomChatKeyboard
   });
+}
+
+async function handleLanguagePrompt(ctx) {
+  const keyboard = new InlineKeyboard()
+    .text("🇺🇸 English", "lang_en")
+    .text("🇪🇸 Español", "lang_es").row()
+    .text("🇮🇳 हिन्दी", "lang_hi")
+    .text("🇸🇦 العربية", "lang_ar").row()
+    .text("🇷🇺 Русский", "lang_ru")
+    .text("🇧🇷 Português", "lang_pt").row()
+    .text("🇫🇷 Français", "lang_fr");
+
+  await ctx.reply(
+    "🌐 *Select Your Preferred Language / Elige tu idioma:*\n\n" +
+    "Choose your language from the options below:",
+    { parse_mode: 'Markdown', reply_markup: keyboard }
+  );
 }
 
 async function handleProfile(ctx) {
@@ -80,5 +97,6 @@ async function handleProfile(ctx) {
 
 module.exports = {
   handleStart,
-  handleProfile
+  handleProfile,
+  handleLanguagePrompt
 };

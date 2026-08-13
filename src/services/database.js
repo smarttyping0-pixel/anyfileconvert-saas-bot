@@ -34,10 +34,11 @@ function isUserAdmin(userId) {
   return adminList.includes(String(userId).trim());
 }
 
-function getUser(userId, username = '') {
+function getUser(userId, username = '', langCode = 'en') {
   const db = loadDb();
   const today = new Date().toISOString().split('T')[0];
   const admin = isUserAdmin(userId);
+  const cleanLang = (langCode || 'en').toLowerCase().split('-')[0];
 
   if (!db.users[userId]) {
     db.users[userId] = {
@@ -48,6 +49,7 @@ function getUser(userId, username = '') {
       lastReset: today,
       lastDailyClaim: '',
       referralsCount: 0,
+      language: cleanLang,
       createdAt: new Date().toISOString()
     };
     saveDb(db);
@@ -55,6 +57,10 @@ function getUser(userId, username = '') {
     const user = db.users[userId];
     if (username && user.username !== username) {
       user.username = username;
+    }
+    if (!user.language) {
+      user.language = cleanLang;
+      saveDb(db);
     }
     if (admin) {
       user.plan = 'admin';
