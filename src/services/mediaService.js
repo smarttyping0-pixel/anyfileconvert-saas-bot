@@ -184,12 +184,12 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     }
   }
 
-  // Option B: 100% Free Lightweight 4MB u2netp Mobile AI Engine
+  // Option B: 100% Free Lightweight 4MB u2netp Mobile AI Engine with Smart Threshold Fallback
   try {
     const { removeBackground } = require('@imgly/background-removal-node');
     const bgPromise = removeBackground(imagePath, { model: 'small' });
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("AI processing timeout")), 15000)
+      setTimeout(() => reject(new Error("AI processing timeout")), 10000)
     );
     
     const blob = await Promise.race([bgPromise, timeoutPromise]);
@@ -198,9 +198,38 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     if (global.gc) global.gc(); // Instantly free V8 heap memory after AI processing
     return outputFilePath;
   } catch (err) {
-    console.error('Local BG Removal note:', err.message);
-    // Fast Sharp PNG fallback (under 100ms, zero RAM spike)
-    await sharp(imagePath).png().toFile(outputFilePath);
+    console.error('Local BG Removal note, using smart transparent mask fallback:', err.message);
+    
+    // Intelligent Color-Based Transparency Fallback (Removes White/Light/Solid Backgrounds in <50ms)
+    const { data, info } = await sharp(imagePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const pixelCount = info.width * info.height;
+    const outBuffer = Buffer.from(data);
+
+    // Sample corner pixels to detect background color
+    const cornerR = (data[0] + data[(info.width - 1) * 4] + data[(pixelCount - info.width) * 4] + data[(pixelCount - 1) * 4]) / 4;
+    const cornerG = (data[1] + data[(info.width - 1) * 4 + 1] + data[(pixelCount - info.width) * 4 + 1] + data[(pixelCount - 1) * 4 + 1]) / 4;
+    const cornerB = (data[2] + data[(info.width - 1) * 4 + 2] + data[(pixelCount - info.width) * 4 + 2] + data[(pixelCount - 1) * 4 + 2]) / 4;
+
+    for (let i = 0; i < pixelCount; i++) {
+      const idx = i * 4;
+      const r = outBuffer[idx];
+      const g = outBuffer[idx + 1];
+      const b = outBuffer[idx + 2];
+
+      const diffR = Math.abs(r - cornerR);
+      const diffG = Math.abs(g - cornerG);
+      const diffB = Math.abs(b - cornerB);
+
+      // If pixel color is close to background corner color, make it 100% transparent!
+      if (diffR < 45 && diffG < 45 && diffB < 45) {
+        outBuffer[idx + 3] = 0; // Alpha 0 = Transparent!
+      }
+    }
+
+    await sharp(outBuffer, { raw: { width: info.width, height: info.height, channels: 4 } })
+      .png()
+      .toFile(outputFilePath);
+
     if (global.gc) global.gc();
     return outputFilePath;
   }

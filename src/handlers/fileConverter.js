@@ -312,12 +312,12 @@ async function handleIncomingFile(ctx) {
       });
     }
 
-    session.clearUserTask(userId);
     await ctx.api.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
   } catch (err) {
     console.error("Task execution error detailed:", err);
     ctx.reply(`❌ Error processing file: ${err.message || "Unknown error"}\n\n✨ *No credits were deducted.*`);
   } finally {
+    session.clearUserTask(userId);
     mediaService.cleanupFile(localInputPath);
     if (outputPath) mediaService.cleanupFile(outputPath);
   }
