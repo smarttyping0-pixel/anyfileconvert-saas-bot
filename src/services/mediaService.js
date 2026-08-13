@@ -447,9 +447,6 @@ async function getInstagramVideoUrl(instagramUrl) {
 }
 
 /**
- * Download Video from URL (YouTube, Instagram Reels/Posts, Web video, Direct link) and convert to MP3
- */
-/**
  * Download Video from URL (YouTube, Instagram, TikTok, Web video) to MP3 using yt-dlp
  */
 async function downloadUrlToMp3(videoUrl) {
@@ -465,34 +462,9 @@ async function downloadUrlToMp3(videoUrl) {
       throw new Error("Unable to extract audio from URL. Please send video file directly!");
     }
   } catch (ytErr) {
-    console.error("yt-dlp extraction note, trying direct HTTP stream fallback:", ytErr.message);
-
-    const tempVideoPath = path.join(TEMP_DIR, `web_${Date.now()}.tmp`);
-    try {
-      const response = await axios({
-        method: 'GET',
-        url: videoUrl,
-        responseType: 'stream',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      const writer = fs.createWriteStream(tempVideoPath);
-      response.data.pipe(writer);
-
-      await new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-      });
-
-      const audioPath = await convertMediaToAudio(tempVideoPath, 'mp3');
-      cleanupFile(tempVideoPath);
-      return audioPath;
-    } catch (err) {
-      cleanupFile(tempVideoPath);
-      throw new Error(`Inaccessible or protected video link: ${err.message}`);
-    }
+    console.error("yt-dlp extraction note:", ytErr.message);
+    cleanupFile(outputFilePath);
+    throw new Error("Unable to extract MP3 from URL. YouTube or website protected this video. Please upload your video file directly to convert to MP3!");
   }
 }
 

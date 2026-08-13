@@ -52,6 +52,8 @@ async function downloadAudioWithYtDlp(url, outputFilePath) {
   return new Promise((resolve, reject) => {
     const ffmpegDir = path.dirname(ffmpegPath);
     const args = [
+      '--js-runtimes', 'node',
+      '--extractor-args', 'youtube:player_client=android,web',
       '-x',
       '--audio-format', 'mp3',
       '--audio-quality', '0',
@@ -61,7 +63,7 @@ async function downloadAudioWithYtDlp(url, outputFilePath) {
       url
     ];
 
-    execFile(binaryPath, args, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+    execFile(binaryPath, args, { maxBuffer: 15 * 1024 * 1024 }, (error, stdout, stderr) => {
       if (error) {
         console.error("yt-dlp execution error:", stderr || error.message);
         reject(error);
