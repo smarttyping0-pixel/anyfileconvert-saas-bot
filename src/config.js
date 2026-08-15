@@ -2,6 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   botToken: process.env.BOT_TOKEN || '',
+  webAppUrl: process.env.WEB_APP_URL || '',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   removeBgApiKey: process.env.REMOVE_BG_API_KEY || '',

@@ -170,6 +170,28 @@ function startServer() {
       const serverUrl = process.env.WEB_APP_URL || 'https://anyfileconvert-saas-bot.onrender.com';
       axios.get(`${serverUrl}/ping`).catch(() => {});
     }, 10 * 60 * 1000);
+
+    // Built-in 15-minute Temp File & Memory Garbage Collection Cleaner
+    setInterval(() => {
+      try {
+        const tempDir = mediaService.TEMP_DIR;
+        if (fs.existsSync(tempDir)) {
+          const files = fs.readdirSync(tempDir);
+          const now = Date.now();
+          for (const file of files) {
+            const filePath = path.join(tempDir, file);
+            const stats = fs.statSync(filePath);
+            // Delete files older than 10 minutes
+            if (now - stats.mtimeMs > 10 * 60 * 1000) {
+              fs.unlinkSync(filePath);
+            }
+          }
+        }
+        if (global.gc) global.gc();
+      } catch (e) {
+        console.error("Auto temp cleanup note:", e.message);
+      }
+    }, 15 * 60 * 1000);
   });
 }
 

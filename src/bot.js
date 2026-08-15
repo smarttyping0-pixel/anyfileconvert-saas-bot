@@ -355,9 +355,20 @@ bot.catch((err) => {
 });
 
 // Set Persistent Left-Side Chat Menu Button
-bot.api.setChatMenuButton({
-  menu_button: { type: 'commands' }
-}).catch(() => {});
+const webAppUrl = config.webAppUrl || process.env.WEB_APP_URL || '';
+if (webAppUrl && webAppUrl.startsWith('https://')) {
+  bot.api.setChatMenuButton({
+    menu_button: {
+      type: 'web_app',
+      text: '⚡ Open Mini App',
+      web_app: { url: webAppUrl }
+    }
+  }).catch(() => {});
+} else {
+  bot.api.setChatMenuButton({
+    menu_button: { type: 'commands' }
+  }).catch(() => {});
+}
 
 // Start Express WebApp Server for Telegram Mini App
 const { startServer } = require('./server');

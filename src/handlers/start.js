@@ -15,7 +15,7 @@ Convert any file format instantly inside Telegram!
 
 👇 *Choose a conversion task from the menu below:*`;
 
-  const webAppUrl = process.env.WEB_APP_URL || 'https://anyfileconvert-saas-bot.onrender.com';
+  const webAppUrl = config.webAppUrl || process.env.WEB_APP_URL || '';
   const inlineKeyboard = new InlineKeyboard();
 
   if (webAppUrl && webAppUrl.startsWith('https://')) {
@@ -38,7 +38,12 @@ Convert any file format instantly inside Telegram!
     .text("⭐ Buy Credits", "cmd_upgrade")
     .text("👤 My Account", "cmd_profile");
 
-  const bottomChatKeyboard = new Keyboard()
+  const bottomChatKeyboard = new Keyboard();
+  if (webAppUrl && webAppUrl.startsWith('https://')) {
+    bottomChatKeyboard.webApp("🚀 Open Mini App", webAppUrl).row();
+  }
+
+  bottomChatKeyboard
     .text("🔗 URL to MP3").text("🎥 Video to MP3").row()
     .text("📄 Image to PDF").text("✂️ Make BG Transparent").row()
     .text("📐 Resize Image").text("📉 Compress Photo").row()
@@ -48,6 +53,11 @@ Convert any file format instantly inside Telegram!
     .text("👤 My Account").text("🌐 Language").resized();
 
   await ctx.reply(welcomeText, {
+    parse_mode: 'Markdown',
+    reply_markup: inlineKeyboard
+  });
+
+  await ctx.reply("👇 *Quick Chat Keyboard:*", {
     parse_mode: 'Markdown',
     reply_markup: bottomChatKeyboard
   });
