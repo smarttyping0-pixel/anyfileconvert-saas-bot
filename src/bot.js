@@ -355,8 +355,9 @@ bot.catch((err) => {
 });
 
 // Set Persistent Left-Side Chat Menu Button
+const showMiniApp = process.env.SHOW_MINI_APP === 'true';
 const webAppUrl = config.webAppUrl || process.env.WEB_APP_URL || '';
-if (webAppUrl && webAppUrl.startsWith('https://')) {
+if (showMiniApp && webAppUrl && webAppUrl.startsWith('https://')) {
   bot.api.setChatMenuButton({
     menu_button: {
       type: 'web_app',

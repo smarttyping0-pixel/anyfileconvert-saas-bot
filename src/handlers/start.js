@@ -15,10 +15,11 @@ Convert any file format instantly inside Telegram!
 
 👇 *Choose a conversion task from the menu below:*`;
 
+  const showMiniApp = process.env.SHOW_MINI_APP === 'true';
   const webAppUrl = config.webAppUrl || process.env.WEB_APP_URL || '';
   const inlineKeyboard = new InlineKeyboard();
 
-  if (webAppUrl && webAppUrl.startsWith('https://')) {
+  if (showMiniApp && webAppUrl && webAppUrl.startsWith('https://')) {
     inlineKeyboard.webApp("🚀 Launch AnyFileConvert Web App", webAppUrl).row();
   }
 
@@ -39,7 +40,7 @@ Convert any file format instantly inside Telegram!
     .text("👤 My Account", "cmd_profile");
 
   const bottomChatKeyboard = new Keyboard();
-  if (webAppUrl && webAppUrl.startsWith('https://')) {
+  if (showMiniApp && webAppUrl && webAppUrl.startsWith('https://')) {
     bottomChatKeyboard.webApp("🚀 Open Mini App", webAppUrl).row();
   }
 
