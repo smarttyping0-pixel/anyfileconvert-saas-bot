@@ -162,77 +162,114 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
   const apiKey = removeBgApiKey || (config && config.removeBgApiKey) || process.env.REMOVE_BG_API_KEY || '';
   const outputFilePath = path.join(TEMP_DIR, `nobg_${Date.now()}.png`);
 
-  // Option A: Use official remove.bg API key if configured
-  if (apiKey) {
+  // TIER 1: Official remove.bg API (If API key provided in .env or config)
+  if (apiKey && apiKey.trim()) {
     try {
       const formData = new FormData();
       formData.append('size', 'auto');
+      formData.append('type', 'auto');
       formData.append('image_file', fs.createReadStream(imagePath));
 
       const response = await axios.post('https://api.remove.bg/v1.0/removebg', formData, {
         headers: {
           ...formData.getHeaders(),
-          'X-Api-Key': apiKey,
+          'X-Api-Key': apiKey.trim(),
         },
         responseType: 'arraybuffer',
+        timeout: 25000
       });
 
-      fs.writeFileSync(outputFilePath, response.data);
-      return outputFilePath;
+      if (response.data && response.data.length > 500) {
+        fs.writeFileSync(outputFilePath, response.data);
+        return outputFilePath;
+      }
     } catch (err) {
-      console.error('remove.bg API Error, switching to local AI:', err.message);
+      console.error('remove.bg API Error:', err.response?.data ? err.response.data.toString() : err.message);
     }
   }
 
-  // Option B: 100% Free Lightweight 4MB u2netp Mobile AI Engine with Smart Threshold Fallback
+  // TIER 2: Local @imgly AI Engine with CDN Asset Path
   try {
     const { removeBackground } = require('@imgly/background-removal-node');
-    const bgPromise = removeBackground(imagePath, { model: 'small' });
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("AI processing timeout")), 10000)
-    );
-    
-    const blob = await Promise.race([bgPromise, timeoutPromise]);
+    const blob = await removeBackground(imagePath, {
+      model: 'small',
+      publicPath: 'https://static.imgly.com/assets/background-removal-data/1.4.5/'
+    });
     const buffer = Buffer.from(await blob.arrayBuffer());
-    fs.writeFileSync(outputFilePath, buffer);
-    if (global.gc) global.gc(); // Instantly free V8 heap memory after AI processing
-    return outputFilePath;
+    if (buffer && buffer.length > 500) {
+      fs.writeFileSync(outputFilePath, buffer);
+      if (global.gc) global.gc();
+      return outputFilePath;
+    }
   } catch (err) {
-    console.error('Local BG Removal note, using smart transparent mask fallback:', err.message);
-    
-    // Intelligent Color-Based Transparency Fallback (Removes White/Light/Solid Backgrounds in <50ms)
-    const { data, info } = await sharp(imagePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const pixelCount = info.width * info.height;
-    const outBuffer = Buffer.from(data);
+    console.error('Local @imgly removal note:', err.message);
+  }
 
-    // Sample corner pixels to detect background color
-    const cornerR = (data[0] + data[(info.width - 1) * 4] + data[(pixelCount - info.width) * 4] + data[(pixelCount - 1) * 4]) / 4;
-    const cornerG = (data[1] + data[(info.width - 1) * 4 + 1] + data[(pixelCount - info.width) * 4 + 1] + data[(pixelCount - 1) * 4 + 1]) / 4;
-    const cornerB = (data[2] + data[(info.width - 1) * 4 + 2] + data[(pixelCount - info.width) * 4 + 2] + data[(pixelCount - 1) * 4 + 2]) / 4;
+  // TIER 3: High-Precision Local Sharp Adaptive Color Distance & Edge-Smoothing Engine
+  const { data, info } = await sharp(imagePath)
+    .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-    for (let i = 0; i < pixelCount; i++) {
-      const idx = i * 4;
-      const r = outBuffer[idx];
-      const g = outBuffer[idx + 1];
-      const b = outBuffer[idx + 2];
+  const pixelCount = info.width * info.height;
+  const outBuffer = Buffer.from(data);
 
-      const diffR = Math.abs(r - cornerR);
-      const diffG = Math.abs(g - cornerG);
-      const diffB = Math.abs(b - cornerB);
+  // Sample outer perimeter (top, bottom, left, right edges) to calculate background color profile
+  let sumR = 0, sumG = 0, sumB = 0, sampleCount = 0;
+  const step = Math.max(1, Math.floor(info.width / 40));
 
-      // If pixel color is close to background corner color, make it 100% transparent!
-      if (diffR < 45 && diffG < 45 && diffB < 45) {
-        outBuffer[idx + 3] = 0; // Alpha 0 = Transparent!
+  for (let x = 0; x < info.width; x += step) {
+    const topIdx = x * 4;
+    const botIdx = ((info.height - 1) * info.width + x) * 4;
+    sumR += data[topIdx] + data[botIdx];
+    sumG += data[topIdx + 1] + data[botIdx + 1];
+    sumB += data[topIdx + 2] + data[botIdx + 2];
+    sampleCount += 2;
+  }
+  for (let y = 0; y < info.height; y += step) {
+    const leftIdx = (y * info.width) * 4;
+    const rightIdx = (y * info.width + info.width - 1) * 4;
+    sumR += data[leftIdx] + data[rightIdx];
+    sumG += data[leftIdx + 1] + data[rightIdx + 1];
+    sumB += data[leftIdx + 2] + data[rightIdx + 2];
+    sampleCount += 2;
+  }
+
+  const bgR = sumR / sampleCount;
+  const bgG = sumG / sampleCount;
+  const bgB = sumB / sampleCount;
+
+  const maxTolerance = 65;
+
+  for (let i = 0; i < pixelCount; i++) {
+    const idx = i * 4;
+    const r = outBuffer[idx];
+    const g = outBuffer[idx + 1];
+    const b = outBuffer[idx + 2];
+
+    const distance = Math.sqrt(
+      Math.pow(r - bgR, 2) +
+      Math.pow(g - bgG, 2) +
+      Math.pow(b - bgB, 2)
+    );
+
+    if (distance < maxTolerance) {
+      if (distance < maxTolerance * 0.6) {
+        outBuffer[idx + 3] = 0; // Transparent
+      } else {
+        const alphaFraction = (distance - maxTolerance * 0.6) / (maxTolerance * 0.4);
+        outBuffer[idx + 3] = Math.round(alphaFraction * 255);
       }
     }
-
-    await sharp(outBuffer, { raw: { width: info.width, height: info.height, channels: 4 } })
-      .png()
-      .toFile(outputFilePath);
-
-    if (global.gc) global.gc();
-    return outputFilePath;
   }
+
+  await sharp(outBuffer, { raw: { width: info.width, height: info.height, channels: 4 } })
+    .png()
+    .toFile(outputFilePath);
+
+  if (global.gc) global.gc();
+  return outputFilePath;
 }
 
 // -------------------------------------------------------------------
