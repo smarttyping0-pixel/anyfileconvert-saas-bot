@@ -24,15 +24,14 @@ Convert any file format instantly inside Telegram!
   }
 
   inlineKeyboard
-    .text("🔗 URL to MP3", "task_url2mp3")
-    .text("🎥 Video to MP3", "task_v2mp3").row()
-    .text("🎬 Video to GIF", "task_v2gif")
-    .text("📄 Image to PDF", "task_img2pdf").row()
-    .text("✂️ Make BG Transparent", "task_bgrem")
-    .text("📐 Resize Image", "task_imgresize").row()
-    .text("📉 Compress Photo", "task_imgcompress")
-    .text("📝 PDF to Text", "task_pdf2txt").row()
-    .text("📘 DOCX to PDF", "task_docx2pdf")
+    .text("🎥 Video to MP3", "task_v2mp3")
+    .text("🎬 Video to GIF", "task_v2gif").row()
+    .text("📄 Image to PDF", "task_img2pdf")
+    .text("✂️ Make BG Transparent", "task_bgrem").row()
+    .text("📐 Resize Image", "task_imgresize")
+    .text("📉 Compress Photo", "task_imgcompress").row()
+    .text("📝 PDF to Text", "task_pdf2txt")
+    .text("📘 DOCX to PDF", "task_docx2pdf").row()
     .text("🖼️ Convert PNG/JPG", "task_imgconv").row()
     .text("🎁 Daily Bonus", "cmd_daily")
     .text("👥 Refer & Earn", "cmd_ref").row()
@@ -45,7 +44,7 @@ Convert any file format instantly inside Telegram!
   }
 
   bottomChatKeyboard
-    .text("🔗 URL to MP3").text("🎥 Video to MP3").row()
+    .text("🎥 Video to MP3").text("🎬 Video to GIF").row()
     .text("📄 Image to PDF").text("✂️ Make BG Transparent").row()
     .text("📐 Resize Image").text("📉 Compress Photo").row()
     .text("📝 PDF to Text").text("📘 DOCX to PDF").row()

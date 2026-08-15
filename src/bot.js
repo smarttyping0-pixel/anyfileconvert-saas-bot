@@ -70,11 +70,6 @@ bot.command('help', async (ctx) => {
 // -------------------------------------------------------------
 // INTERACTIVE MENU TASK SELECTION BUTTONS
 // -------------------------------------------------------------
-bot.callbackQuery('task_url2mp3', async (ctx) => {
-  await ctx.answerCallbackQuery().catch(() => {});
-  await ctx.reply("🔗 *URL to MP3:* Paste any video link (YouTube, Web video, MP4 URL) to convert to MP3!", { parse_mode: 'Markdown' });
-});
-
 bot.callbackQuery('task_v2mp3', async (ctx) => {
   await ctx.answerCallbackQuery().catch(() => {});
   return selectTask(ctx, 'v2mp3', '🎥 Video to MP3 Audio');
@@ -222,9 +217,6 @@ bot.callbackQuery('buy_pro', async (ctx) => {
 // -------------------------------------------------------------
 // BOTTOM CHAT KEYBOARD TEXT LISTENERS
 // -------------------------------------------------------------
-bot.hears("🔗 URL to MP3", async (ctx) => {
-  await ctx.reply("🔗 *URL to MP3:* Paste any video link (YouTube, Web video, MP4 URL) to convert to MP3!", { parse_mode: 'Markdown' });
-});
 bot.hears("🎥 Video to MP3", (ctx) => selectTask(ctx, 'v2mp3', '🎥 Video to MP3 Audio'));
 bot.hears("🎬 Video to GIF", (ctx) => selectTask(ctx, 'v2gif', '🎬 Video to Animated GIF'));
 bot.hears("📄 Image to PDF", (ctx) => selectTask(ctx, 'img2pdf', '📄 Image to PDF Document'));
