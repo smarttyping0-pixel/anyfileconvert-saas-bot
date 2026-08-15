@@ -188,7 +188,32 @@ async function removeImageBackground(imagePath, removeBgApiKey = '') {
     }
   }
 
-  // TIER 2: Local @imgly AI Engine with CDN Asset Path
+  // TIER 2: 100% Free AI Engine (Hugging Face BRIA AI RMBG-1.4 Model - Free Open Source AI)
+  try {
+    const imgBuffer = fs.readFileSync(imagePath);
+    const hfToken = process.env.HF_TOKEN || '';
+    const headers = { "Content-Type": "application/octet-stream" };
+    if (hfToken) headers["Authorization"] = `Bearer ${hfToken}`;
+
+    const hfResponse = await axios.post(
+      "https://api-inference.huggingface.co/models/briaai/RMBG-1.4",
+      imgBuffer,
+      {
+        headers,
+        responseType: 'arraybuffer',
+        timeout: 20000
+      }
+    );
+
+    if (hfResponse.data && hfResponse.data.length > 1000) {
+      fs.writeFileSync(outputFilePath, hfResponse.data);
+      return outputFilePath;
+    }
+  } catch (hfErr) {
+    console.error("HuggingFace BRIA AI RMBG-1.4 note:", hfErr.message);
+  }
+
+  // TIER 3: Local @imgly AI Engine with CDN Asset Path
   try {
     const { removeBackground } = require('@imgly/background-removal-node');
     const blob = await removeBackground(imagePath, {
